@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderAssetGetter)
-local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderEnums)
+local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
+local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
 local MathCurves = require(ReplicatedStorage.SharedUtils.MathUtils.MathCurves)
 local MathEasing = require(ReplicatedStorage.SharedUtils.MathUtils.MathEasing)
 local MathGeneral = require(ReplicatedStorage.SharedUtils.MathUtils.MathGeneral)
@@ -155,7 +155,7 @@ local function getCurveVector2(
 end
 
 --[[
-	ROAD POINT CREATION
+	ROAD POINT Creation
 ]]
 
 type RoadPointData = {
@@ -195,7 +195,7 @@ local function createRoadPoint(
 end
 
 --[[
-	ROAD CREATION
+	ROAD Creation
 ]]
 
 type RoadData = {
@@ -312,7 +312,7 @@ function Creation.RoadConfig(
 end
 
 --[[
-	Creates a PointVector2Data, used for all road creation methods. Automatically converts Vector3s into Vector2s to support module's preferred vector type.
+	Creates a PointVector2Data, used for all road Creation methods. Automatically converts Vector3s into Vector2s to support module's preferred vector type.
 	
 	Use `yLevel` to dictate Vector3 Y level.
 ]]

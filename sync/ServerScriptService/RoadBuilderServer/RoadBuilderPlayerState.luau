@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderEnums)
+local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
 
 local State = {}
 

@@ -1,10 +1,10 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderCreation)
-local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderEnums)
+local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
+local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
 local RoadBuilderPlayerState = require(script.RoadBuilderPlayerState)
-local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderEvents)
+local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
 
 --[[
     load player state for road building system

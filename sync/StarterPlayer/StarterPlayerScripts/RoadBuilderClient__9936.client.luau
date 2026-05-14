@@ -21,9 +21,9 @@ local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local MouseUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.MouseUtils)
-local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderCreation)
-local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderEnums)
-local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilderShared.RoadBuilderEvents)
+local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
+local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
+local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
 
 --// CONFIGURATION
 
