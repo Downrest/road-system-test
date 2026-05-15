@@ -4,6 +4,17 @@ local MathGeneral = require(ReplicatedStorage.SharedUtils.MathUtils.MathGeneral)
 
 local Curves = {}
 
+--[[
+	Returns a bezier curve with nth amount of points
+	
+	https://en.wikipedia.org/wiki/B%C3%A9zier_curve (explicit definition)
+
+	```luau
+	-- example
+	BezierCurve.NthBezierCurve(.5, 1, 2) -- returns 1.5
+	BezierCurve.NthBezierCurve(.5, 1, 2, 3) -- returns 2
+	```
+]]
 function Curves.NthBezierCurve(t: number, ...)
 	local points = {...}
 

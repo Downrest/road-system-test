@@ -1,5 +1,0 @@
-	while condition do
-		
-	end
-	
-	

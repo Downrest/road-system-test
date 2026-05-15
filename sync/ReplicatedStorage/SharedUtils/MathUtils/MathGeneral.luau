@@ -44,16 +44,4 @@ function General.BinomialCoefficient(n: number, k: number): number
 	return General.Factorial(n) / (General.Factorial(k) * General.Factorial(n - k))
 end
 
---[[
-	Returns a bezier curve with nth amount of points
-	
-	https://en.wikipedia.org/wiki/B%C3%A9zier_curve (explicit definition)
-
-	```luau
-	-- example
-	BezierCurve.NthBezierCurve(.5, 1, 2) -- returns 1.5
-	BezierCurve.NthBezierCurve(.5, 1, 2, 3) -- returns 2
-	```
-]]
-
 return General

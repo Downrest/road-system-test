@@ -5,6 +5,7 @@ local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
 local MathCurves = require(ReplicatedStorage.SharedUtils.MathUtils.MathCurves)
 local MathEasing = require(ReplicatedStorage.SharedUtils.MathUtils.MathEasing)
 local MathGeneral = require(ReplicatedStorage.SharedUtils.MathUtils.MathGeneral)
+local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 
 local Creation = {}
 
@@ -47,14 +48,6 @@ local CREATE_TYPE_TO_PART_PROPERTIES = {
 }
 
 --// INTERNAL
-
-local function applyArrayToProperties(instance: Instance, properties: {any})
-	for propertyName, propertyValue in properties do
-		pcall(function()
-			instance[propertyName] = propertyValue
-		end)	
-	end
-end
 
 local function vector2FromVector3(vector3: Vector3): Vector2
 	return Vector2.new(vector3.X, vector3.Z)
@@ -188,7 +181,7 @@ local function createRoadPoint(
 
 	local createTypeProperties = CREATE_TYPE_TO_PART_PROPERTIES[createType]
 	if createTypeProperties then
-		applyArrayToProperties(newRoadPoint, createTypeProperties.roadPoint)
+		PropertiesUtils.ApplyProperties(newRoadPoint, createTypeProperties.roadPoint)
 	end
 
 	return newRoadPoint, vector2FromVector3(newRoadPoint.Position)
@@ -241,7 +234,7 @@ local function createRoad(
 
 	local createTypeProperties = CREATE_TYPE_TO_PART_PROPERTIES[createType]
 	if createTypeProperties then
-		applyArrayToProperties(newRoad, createTypeProperties.road)
+		PropertiesUtils.ApplyProperties(newRoad, createTypeProperties.road)
 	end
 
 	return newRoad

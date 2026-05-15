@@ -1,19 +1,22 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local TweenService = game:GetService("TweenService")
 
+local BuildAnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData.BuildAnimData)
 local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
 local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
-local GuiEnums = require(StarterPlayer.StarterPlayerScripts.ClientGui.GuiEnums)
-local GuiGetter = require(StarterPlayer.StarterPlayerScripts.ClientGui.GuiGetter)
-local FocusSignals = require(StarterPlayer.StarterPlayerScripts.ClientGui.GuiSignals.FocusSignals)
+local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
+local GuiEnums = require(StarterPlayer.StarterPlayerScripts.Gui.GuiEnums)
+local GuiGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiGetter)
+local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
 local RoadBuilderState = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderState)
 
-local buildGui = GuiGetter.BuildGui
-local roadSelection = buildGui.RoadSelection
+local roadSelection = GuiGetter.BuildGui.roadSelection
 local roadTemplates = roadSelection.Templates
 local ROAD_BUTTON = roadTemplates.RoadButton
+local buildMenu = GuiGetter.BuildGui.buildMenu
 
-local defocusGuiSignal = FocusSignals.DefocusGui
+local ROAD_SELECTION_ANIM_DATA = BuildAnimData.roadSelection
 
 type RoadButtonInstances = {
     roadButton: GuiButton;
@@ -36,6 +39,7 @@ end
 
 local function roadButtonTrigger(roadButtonInstances: RoadButtonInstances, roadData: RoadBuilderEnums.RoadData)
     RoadBuilderState.CurrentRoadType = roadData.RoadType
+    FocusSignals.BuildInterface.FocusGuis(buildMenu).DefocusAllGuisExcept()
 end
 
 local function init()
@@ -55,14 +59,26 @@ local function init()
             roadButtonTrigger(roadButtonInstances, roadData)
         end)
 	end
+
+    PropertiesUtils.ApplyProperties(roadSelection, ROAD_SELECTION_ANIM_DATA.initProperties)
 end
 
 init()
 
-FocusSignals.OnFocus(buildGui, function()
-    buildGui.Enabled = true
+FocusSignals.BuildInterface.OnFocus(roadSelection, function()
+    warn("roadselection focused")
+    TweenService:Create(
+        roadSelection, 
+        ROAD_SELECTION_ANIM_DATA.focusedTweenData.tweenInfo, 
+        ROAD_SELECTION_ANIM_DATA.focusedTweenData.tweenProperties
+    ):Play()
 end)
 
-FocusSignals.OnDefocus(buildGui, function()
-    buildGui.Enabled = false
+FocusSignals.BuildInterface.OnDefocus(roadSelection, function()
+    warn("roadselection defocused")
+    TweenService:Create(
+        roadSelection, 
+        ROAD_SELECTION_ANIM_DATA.defocusedTweenData.tweenInfo, 
+        ROAD_SELECTION_ANIM_DATA.defocusedTweenData.tweenProperties
+    ):Play()
 end)
