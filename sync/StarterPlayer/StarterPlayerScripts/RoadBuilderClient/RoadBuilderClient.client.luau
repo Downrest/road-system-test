@@ -59,13 +59,16 @@ currentRoadType.Value = RoadBuilderEnums.RoadType.Mud
 		selected road, select road point
 ]]
 InputManager.OnPress:Connect(function()
-    if RoadBuilderState.CurrentRoadType then
-        local mouseRay = MouseUtils.GetMouseRay()
-        RoadBuilderEvents.CreateRoad:FireServer(
-            mouseRay, 
-            currentRoadType.Value
-        )
-    end
+	if 
+		RoadBuilderState.CurrentRoadType 
+		and RoadBuilderState.IsBuilding
+	then
+		local mouseRay = MouseUtils.GetMouseRay()
+		RoadBuilderEvents.CreateRoad:FireServer(
+			mouseRay, 
+			currentRoadType.Value
+		)
+	end
 end)
 
 --[[
