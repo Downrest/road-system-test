@@ -97,6 +97,9 @@ local function newFocusCategory(): FocusCategory
 	focusCategory.FocusGuis = function(...)
 		return focusGuis(focusCategory.FocusGuiSignal, focusCategory.DefocusGuiSignal, ...)
 	end;
+	--[[
+		Fires DefocusGuiSignal, triggering all `OnDefocus` methods for everything except `...`, 
+	]]
 	focusCategory.DefocusAllGuisExcept = function(...)
 		defocusAllGuisExcept(focusCategory.DefocusGuiSignal, ...)
 	end;
