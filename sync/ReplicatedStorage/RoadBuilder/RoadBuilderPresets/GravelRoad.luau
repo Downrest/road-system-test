@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter)
 
-local roadType = RoadTypeEnums.Mud
+local roadType = RoadTypeEnums.Gravel
 
 return {
     Name = roadType;

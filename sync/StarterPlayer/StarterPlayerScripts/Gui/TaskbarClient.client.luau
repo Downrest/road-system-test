@@ -4,13 +4,12 @@ local TweenService = game:GetService("TweenService")
 
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local TaskbarAnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData.TaskbarAnimData)
-local GuiEnums = require(StarterPlayer.StarterPlayerScripts.Gui.GuiEnums)
-local GuiGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiGetter)
+local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
 local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
 
-local taskbarGui = GuiGetter.TaskbarGui.gui
-local taskbarGuiFrame = GuiGetter.TaskbarGui.guiFrame
-local buildButton = GuiGetter.TaskbarGui.buildButton
+local taskbarGui = GuiAssetGetter.TaskbarGui.gui
+local taskbarGuiFrame = GuiAssetGetter.TaskbarGui.guiFrame
+local buildButton = GuiAssetGetter.TaskbarGui.buildButton
 
 --// CONFIGURATION
 
@@ -41,5 +40,5 @@ FocusSignals.MainInterface.OnDefocus(taskbarGui, function()
 end)
 
 buildButton.MouseButton1Down:Connect(function()
-    FocusSignals.MainInterface.FocusGuis(GuiGetter.BuildGui.gui).DefocusAllGuisExcept()
+    FocusSignals.MainInterface.FocusGuis(GuiAssetGetter.BuildGui.gui).DefocusAllGuisExcept()
 end)

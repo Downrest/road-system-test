@@ -1,12 +1,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
+local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local MudRoad = require(script.MudRoad)
+local GravelRoad = require(script.GravelRoad)
 
 local Presets = {}
 
 Presets.RoadTypeData = {
-	[RoadBuilderEnums.RoadType.Mud] = MudRoad
-}:: {[string]: RoadBuilderEnums.RoadData}
+    [RoadTypeEnums.Mud] = MudRoad;
+    [RoadTypeEnums.Gravel] = GravelRoad;
+}
 
 return Presets

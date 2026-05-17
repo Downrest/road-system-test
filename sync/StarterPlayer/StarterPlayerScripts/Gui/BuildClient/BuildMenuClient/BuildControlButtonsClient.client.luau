@@ -1,15 +1,15 @@
 local StarterPlayer = game:GetService("StarterPlayer")
 
-local GuiGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiGetter)
 local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
+local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
 
-local buildControlButtons = GuiGetter.BuildGui.buildControlsButtons
+local buildControlButtons = GuiAssetGetter.BuildGui.buildControlsButtons
 local backButton = buildControlButtons.BackButton
 local exitButton = buildControlButtons.ExitButton
-local buildMenu = GuiGetter.BuildGui.buildMenu
-local roadSelection = GuiGetter.BuildGui.roadSelection
+local buildMenu = GuiAssetGetter.BuildGui.buildMenu
+local roadSelection = GuiAssetGetter.BuildGui.roadSelection
 
-local taskbarGui = GuiGetter.TaskbarGui.gui
+local taskbarGui = GuiAssetGetter.TaskbarGui.gui
 
 local function init()
     backButton.MouseButton1Click:Connect(function()

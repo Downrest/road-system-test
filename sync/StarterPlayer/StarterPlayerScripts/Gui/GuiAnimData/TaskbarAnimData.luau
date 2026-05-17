@@ -1,17 +1,18 @@
 local StarterPlayer = game:GetService("StarterPlayer")
 
-local AnimDataUtils = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData.AnimDataUtils)
-local GuiGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiGetter)
+local AnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimData)
+local AnimTweenData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimTweenData)
+local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
 
-local taskbarGuiFrame = GuiGetter.TaskbarGui.guiFrame
+local taskbarGuiFrame = GuiAssetGetter.TaskbarGui.guiFrame
 local TASKBAR_BAKED_POSITION = taskbarGuiFrame.Position
 
 return {
-    taskbarGuiFrame = AnimDataUtils.AnimData(
+    taskbarGuiFrame = AnimData(
         {
             Visible = true;
         },
-        AnimDataUtils.TweenData(
+        AnimTweenData(
             TweenInfo.new(.5),
             {
                 Position = UDim2.fromScale(
@@ -20,7 +21,7 @@ return {
                 );
             }
         ),
-        AnimDataUtils.TweenData(
+        AnimTweenData(
             TweenInfo.new(.5),
             {
                 Position = UDim2.fromScale(

@@ -1,13 +1,14 @@
 local StarterPlayer = game:GetService("StarterPlayer")
 
-local AnimDataUtils = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData.AnimDataUtils)
-local GuiGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiGetter)
+local AnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimData)
+local AnimTweenData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimTweenData)
+local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
 
-local roadSelection = GuiGetter.BuildGui.roadSelection
+local roadSelection = GuiAssetGetter.BuildGui.roadSelection
 local ROAD_SELECTION_BAKED_POSITION = roadSelection.Position
 
 return {
-	roadSelection = AnimDataUtils.AnimData(
+	roadSelection = AnimData(
         {
             Visible = true;
             Position = UDim2.fromScale(
@@ -15,7 +16,7 @@ return {
                 1.25
             );
         },
-        AnimDataUtils.TweenData(
+        AnimTweenData(
             TweenInfo.new(.5),
             {
                 Position = UDim2.fromScale(
@@ -24,7 +25,7 @@ return {
                 )
             }
         ),
-        AnimDataUtils.TweenData(
+        AnimTweenData(
             TweenInfo.new(.5),
             {
                 Position = UDim2.fromScale(

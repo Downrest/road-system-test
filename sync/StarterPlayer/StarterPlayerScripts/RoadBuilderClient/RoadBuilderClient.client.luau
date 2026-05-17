@@ -1,124 +1,126 @@
 --[[
-	HAVE A GUI SHOWING CURRENT SELECTED PART(S), lowkey imagining it to be at the
-	left of ur screen, itll just show an icon of what u have selected and how many
-
-	CTRL+D to deselect, or u can just drag the entire selection gui away from its position
-	and it should just swiftly crash into the left side of the screen to show its being deselected
-
-	when u press the build ui and press anywhere on the screen
-		if ur mouse is on an existing road point
-			that road point not selected? select
-			already selected? unselect
-		if ur mouse isnt, create + select that newly created road point
-
-	this also applies for continuing to make roads, after every extension itll automatically
-	have ur road selected lol. AND AGAIN, TO DESELECT JUST DO CTRL+D or whatnot
+	steps
+		hover on something
+		click
+		visualization stops moving, assuming ur "finalizing ur selection"
+		either / or X shows up
+			click / and itll build
+			click X and itll let u keep moving the selection
 ]]
 
-local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
+local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
+local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
+local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
+local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
+local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local MouseUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.MouseUtils)
+local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
+local RoadBuilderSelectionValidator = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderSelectionValidator)
+local CharmState = require(ReplicatedStorage.SharedUtils.CharmState)
 local InputManager = require(StarterPlayer.StarterPlayerScripts.Inputs.InputManager)
 local RoadBuilderState = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderState)
-local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
-local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
-local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
+local RoadBuilderVisualizer = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderUtils.RoadBuilderVisualizer)
 
---// CONFIGURATION
+local isInBuildMenuState = RoadBuilderState.IsInBuildMenu
+local currentRoadTypeState = RoadBuilderState.CurrentRoadType
+local selectedRoadPointState = RoadBuilderState.SelectedRoadPoint
+local simulatedRoadPointState = RoadBuilderState.SimulatedRoadPoint
+local isPromptedSelection = RoadBuilderState.IsPromptedSelection
 
-local ROAD_SELECT_INPUT_TYPE = Enum.UserInputType.MouseButton1
-local TASK_NAMES = {
-	["RoadSelect"] = "RoadSelect";
-}
-
---// VARIABLES
-type RenderRoadData = {
-	isRendering: boolean;
-	selectedRoadVector2Data: RoadBuilderEnums.PointVector2Data;
-}
-
-local camera = workspace.CurrentCamera
-
-local currentRoadType = Instance.new("StringValue")
-local renderRoadData: RenderRoadData = {
-	isRendering = false;
-	selectedRoadVector2Data = nil;
-}
-
---// RUNTIME
-
--- test
-currentRoadType.Value = RoadBuilderEnums.RoadType.Mud
+local currentMouseCast: RaycastResult
 
 --[[
-	triggering "road select", either
-		no selected road, create road point
-		selected road, select road point
+	client merely sends requests to the server
+	to prompt road creation
 ]]
 InputManager.OnPress:Connect(function()
 	if 
-		RoadBuilderState.CurrentRoadType 
-		and RoadBuilderState.IsBuilding
-	then
-		local mouseRay = MouseUtils.GetMouseRay()
-		RoadBuilderEvents.CreateRoad:FireServer(
-			mouseRay, 
-			currentRoadType.Value
-		)
-	end
-end)
-
---[[
-	ROAD VISUALIZATION
-]]
-
---[[
-	road visualization data, fired back after RoadBuilderEvents.CreateRoad:FireServer()
-]]
-RoadBuilderEvents.RenderRoad.OnClientEvent:Connect(function(
-	renderState: boolean, 
-	selectedRoadVector2Data: RoadBuilderEnums.PointVector2Data
-)
-	renderRoadData.isRendering = renderState
-	renderRoadData.selectedRoadVector2Data = selectedRoadVector2Data
-end)
-
---[[
-	road visualization renderstep (uses RoadBuilderEnums.CreateType.Visualize)
-]]
-RunService.RenderStepped:Connect(function()
-	local mouseCast = MouseUtils.GetMouseCast()
-
-	if 
-		not renderRoadData.isRendering
-		or not mouseCast 
+		not isInBuildMenuState() 
+		or not simulatedRoadPointState()
 	then
 		return
 	end
 
-	local selectedRoadVector2Data = renderRoadData.selectedRoadVector2Data
-	local selectedRoadPosition = selectedRoadVector2Data.position
-	local selectedRoadDirection = selectedRoadVector2Data.direction
-	local selectedRoadYLevel = selectedRoadVector2Data.yLevel
+	selectedRoadPointState(simulatedRoadPointState())
+	isPromptedSelection(true)
+	local _, selectTriggeredSignal, undoTriggeredSignal, destructor = RoadBuilderVisualizer.AddSelectionPrompt(simulatedRoadPointState())
 
-	-- clear existing before new road visualization
-	camera:ClearAllChildren()
+	selectTriggeredSignal:Connect(function()
+		destructor()
+		RoadBuilderEvents.CreateRoadRequest:FireServer(
+			simulatedRoadPointState().Position, 
+			currentRoadTypeState()
+		)
 
-	RoadBuilderCreation.CreateExtensionRoad(
-		RoadBuilderCreation.RoadConfig(
-			currentRoadType.Value, 
-			RoadBuilderEnums.CreateType.Visualize,
-			camera
-		),
+		task.wait()
+		isPromptedSelection(false)
+	end)
+	undoTriggeredSignal:Connect(function()
+		isPromptedSelection(false)
+		destructor()
+		selectedRoadPointState(nil)
+	end)
+end)
 
-		RoadBuilderCreation.PointVector2Data(
-			selectedRoadPosition, 
-			selectedRoadDirection,
-			selectedRoadYLevel
-		),
-		RoadBuilderCreation.PointVector2Data(mouseCast.Position)
-	)
+--[[
+	if state is exited (meaning player is no longer in build menu)
+	clear selected road data on the server
+]]
+CharmState.subscribe(isInBuildMenuState, function()
+	-- RoadBuilderEvents.ClearSelectedRoadRequest:FireServer()
+	RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
+	selectedRoadPointState(nil)
+end)
+
+--[[
+	if road request (CreateRoadRequest:FireServer()) is successful,
+	server returns data to the client for visualization purposes
+]]
+-- RoadBuilderEvents.CreateRoadRequest.OnClientEvent:Connect(function(
+-- 	createSuccess: boolean,
+-- 	createdRoad: BasePart
+-- )
+-- 	selectedRoadPointState(createdRoad)
+-- end)
+
+RunService.RenderStepped:Connect(function()
+	-- has selected? prevent clearing of visualized road
+	if isPromptedSelection() then
+		return
+
+	-- else, continue with visualization rerender
+	else
+		-- clear current visualization data
+		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
+
+		-- dont create new visualization if not in build menu
+		if not isInBuildMenuState() then
+			return
+		end
+
+		-- dont create new visualization no raycastresult from mouse
+		currentMouseCast = MouseUtils.GetMouseCast()
+		if not currentMouseCast then
+			return
+		end
+
+		local isCastInstanceValidSelection = RoadBuilderSelectionValidator.VerifyRoadPoint(currentMouseCast.Instance)
+
+		if isCastInstanceValidSelection then
+			warn("SELECTING SOMETHINGG")
+			simulatedRoadPointState(currentMouseCast.Instance)
+		else
+			local castPosition = currentMouseCast.Position
+
+			local instance = RoadBuilderVisualizer.SimulateRoadPoint(
+				currentRoadTypeState(),
+				castPosition
+			)
+			simulatedRoadPointState(instance)
+		end
+	end
 end)

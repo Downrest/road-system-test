@@ -3,18 +3,16 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local TweenService = game:GetService("TweenService")
 
 local BuildAnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData.BuildAnimData)
-local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
 local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
-local GuiEnums = require(StarterPlayer.StarterPlayerScripts.Gui.GuiEnums)
-local GuiGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiGetter)
 local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
+local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
 local RoadBuilderState = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderState)
 
-local roadSelection = GuiGetter.BuildGui.roadSelection
+local roadSelection = GuiAssetGetter.BuildGui.roadSelection
 local roadTemplates = roadSelection.Templates
 local ROAD_BUTTON = roadTemplates.RoadButton
-local buildMenu = GuiGetter.BuildGui.buildMenu
+local buildMenu = GuiAssetGetter.BuildGui.buildMenu
 
 local ROAD_SELECTION_ANIM_DATA = BuildAnimData.roadSelection
 
@@ -25,25 +23,25 @@ type RoadButtonInstances = {
     lockedDim: GuiBase;
 }
 
-local function roadButtonUpdate(roadButtonInstances: RoadButtonInstances, roadData: RoadBuilderEnums.RoadData)
+local function roadButtonUpdate(roadButtonInstances: RoadButtonInstances, roadPreset)
     local roadButton = roadButtonInstances.roadButton
     local roadName = roadButtonInstances.roadName
     local roadIcon = roadButtonInstances.roadIcon
     local lockedDim = roadButtonInstances.lockedDim
 
     roadButton.Visible = true
-    roadButton.Name = `{roadData.Name}Button`
-    roadName.Name = roadData.Name
-    roadIcon.Image = roadData.Gui.IconImageId
+    roadButton.Name = `{roadPreset.Name}Button`
+    roadName.Text = roadPreset.Name
+    roadIcon.Image = roadPreset.Gui.IconImageId
 end
 
-local function roadButtonTrigger(roadButtonInstances: RoadButtonInstances, roadData: RoadBuilderEnums.RoadData)
-    RoadBuilderState.CurrentRoadType = roadData.RoadType
+local function roadButtonTrigger(roadButtonInstances: RoadButtonInstances, roadPreset)
+    RoadBuilderState.CurrentRoadType(roadPreset.RoadType)
     FocusSignals.BuildInterface.FocusGuis(buildMenu).DefocusAllGuisExcept()
 end
 
 local function init()
-	for _, roadData in RoadBuilderPresets.RoadTypeData do
+	for _, roadPreset in RoadBuilderPresets.RoadTypeData do
         local roadButtonClone = ROAD_BUTTON:Clone()
         local roadButtonInstances = {
             roadButton = roadButtonClone;
@@ -52,11 +50,11 @@ local function init()
             lockedDim = roadButtonClone.LockedDim;
         }
 
-        roadButtonUpdate(roadButtonInstances, roadData)
-        roadButtonClone.Parent = roadSelection
+        roadButtonUpdate(roadButtonInstances, roadPreset)
+        roadButtonClone.Parent = roadSelection.RoadList
 
         roadButtonClone.MouseButton1Click:Connect(function()
-            roadButtonTrigger(roadButtonInstances, roadData)
+            roadButtonTrigger(roadButtonInstances, roadPreset)
         end)
 	end
 
@@ -76,6 +74,7 @@ end)
 
 FocusSignals.BuildInterface.OnDefocus(roadSelection, function()
     warn("roadselection defocused")
+    
     TweenService:Create(
         roadSelection, 
         ROAD_SELECTION_ANIM_DATA.defocusedTweenData.tweenInfo, 

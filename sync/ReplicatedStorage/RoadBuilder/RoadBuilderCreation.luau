@@ -1,11 +1,19 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
-local RoadBuilderEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums)
+local _RoadData = require(script.CreationDataWrappers._RoadData)
+local _RoadPointData = require(script.CreationDataWrappers._RoadPointData)
+local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
+local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
+local RoadCreationOutputData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadCreationOutputData)
+local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
+local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
+local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
+local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter)
 local MathCurves = require(ReplicatedStorage.SharedUtils.MathUtils.MathCurves)
 local MathEasing = require(ReplicatedStorage.SharedUtils.MathUtils.MathEasing)
 local MathGeneral = require(ReplicatedStorage.SharedUtils.MathUtils.MathGeneral)
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
+local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 
 local Creation = {}
 
@@ -23,39 +31,24 @@ local CURVE_LERP_VALUES = {
 }
 local CURVE_ANGLE_MAXIMUM = 45
 
-local DEFAULT_ROAD_DIRECTION = Vector2.xAxis
 local ROAD_ANGLE_CORRECTION = math.pi/2
 local ASSETS = {
 	road = {
-		[RoadBuilderEnums.RoadType.Gravel] = RoadBuilderAssetGetter.GetRoadFromType(RoadBuilderEnums.RoadType.Gravel);
-		[RoadBuilderEnums.RoadType.Mud] = RoadBuilderAssetGetter.GetRoadFromType(RoadBuilderEnums.RoadType.Mud);
+		[RoadTypeEnums.Gravel] = RoadBuilderAssetGetter.roadAssets[RoadTypeEnums.Gravel].road;
+		[RoadTypeEnums.Mud] = RoadBuilderAssetGetter.roadAssets[RoadTypeEnums.Mud].road;
 	};
 	roadPoint = {
-		[RoadBuilderEnums.RoadType.Gravel] = RoadBuilderAssetGetter.GetRoadPointFromType(RoadBuilderEnums.RoadType.Gravel);
-		[RoadBuilderEnums.RoadType.Mud] = RoadBuilderAssetGetter.GetRoadPointFromType(RoadBuilderEnums.RoadType.Mud);
+		[RoadTypeEnums.Gravel] = RoadBuilderAssetGetter.roadAssets[RoadTypeEnums.Gravel].roadPoint;
+		[RoadTypeEnums.Mud] = RoadBuilderAssetGetter.roadAssets[RoadTypeEnums.Mud].roadPoint;
 	};
 }
 
-local CREATE_TYPE_TO_PART_PROPERTIES = {
-	[RoadBuilderEnums.CreateType.Visualize] = {
-		road = {
-			Transparency = .8;
-		};
-		roadPoint = {
-			Transparency = .5;
-		};
-	};
+local ROAD_TYPE_TO_VISUALIZE_PROPERTIES = {
+	[RoadTypeEnums.Gravel] = RoadBuilderPresets.RoadTypeData[RoadTypeEnums.Gravel].VisualizeProperties;
+	[RoadTypeEnums.Mud] = RoadBuilderPresets.RoadTypeData[RoadTypeEnums.Mud].VisualizeProperties;
 }
 
 --// INTERNAL
-
-local function vector2FromVector3(vector3: Vector3): Vector2
-	return Vector2.new(vector3.X, vector3.Z)
-end
-
-local function vector3FromVector2AndY(vector2: Vector2, y: number): Vector3
-	return Vector3.new(vector2.X, y, vector2.Y)
-end
 
 local function curveControlPointsFromCurveLerpValues(
 	originValue: number, 
@@ -95,6 +88,23 @@ local function curveControlPointsFromCurveLerpValues(
 	end
 
 	return table.unpack(curvePoints)
+end
+
+local function applyVisualizeProperties(
+	createType: string,
+	roadType: string,
+	roadPart: BasePart
+)
+	if createType ~= CreateTypeEnums.Visualize then
+		return
+	end
+
+	local createTypeProperties = ROAD_TYPE_TO_VISUALIZE_PROPERTIES[roadType]
+	if not createTypeProperties then
+		return
+	end
+
+	PropertiesUtils.ApplyProperties(roadPart, createTypeProperties.roadPoint)
 end
 
 --[[
@@ -147,29 +157,14 @@ local function getCurveVector2(
 	return Vector2.new(curveX, curveY)
 end
 
---[[
-	ROAD POINT Creation
-]]
-
-type RoadPointData = {
-	position: Vector2,
-	roadYLevel: number
-}
-
-local function roadPointData(position: Vector2, roadYLevel: number): RoadPointData
-	return {
-		position = position,
-		roadYLevel = roadYLevel
-	}
-end
-
 local function createRoadPoint(
 	roadAsset: BasePart, 
 	
+	roadType: string,
 	createType: string, 
 	parent: Instance, 
 	
-	data: RoadPointData
+	data: _RoadPointData.type
 ): (BasePart, Vector2)
 	local position = data.position
 	local roadYLevel = data.roadYLevel
@@ -179,39 +174,19 @@ local function createRoadPoint(
 	newRoadPoint.Anchored = true
 	newRoadPoint.Position = Vector3.new(position.X, roadYLevel, position.Y)
 
-	local createTypeProperties = CREATE_TYPE_TO_PART_PROPERTIES[createType]
-	if createTypeProperties then
-		PropertiesUtils.ApplyProperties(newRoadPoint, createTypeProperties.roadPoint)
-	end
+	applyVisualizeProperties(createType, roadType, newRoadPoint)
 
-	return newRoadPoint, vector2FromVector3(newRoadPoint.Position)
-end
-
---[[
-	ROAD Creation
-]]
-
-type RoadData = {
-	originPosition: Vector2,
-	goalPosition: Vector2,
-	roadYLevel: number
-}
-
-local function roadData(originPosition: Vector2, goalPosition: Vector2, roadYLevel: number): RoadPointData
-	return {
-		originPosition = originPosition,
-		goalPosition = goalPosition,
-		roadYLevel = roadYLevel
-	}
+	return newRoadPoint, VectorUtils.Vector2FromVector3(newRoadPoint.Position)
 end
 
 local function createRoad(
 	roadAsset: BasePart, 
 
+	roadType: string,
 	createType: string, 
 	parent: Instance, 
 	
-	data: RoadData
+	data: _RoadData.type
 ): BasePart
 	local originPosition = data.originPosition
 	local goalPosition = data.goalPosition
@@ -228,14 +203,11 @@ local function createRoad(
 	newRoad.Anchored = true
 	newRoad.Size = Vector3.new(roadLength, newRoad.Size.Y, newRoad.Size.Z)
 	newRoad.CFrame = CFrame.lookAt(
-		vector3FromVector2AndY(roadCenterPosition, roadYLevel), 
-		vector3FromVector2AndY(goalPosition, roadYLevel)
+		VectorUtils.Vector3FromVector2AndY(roadCenterPosition, roadYLevel), 
+		VectorUtils.Vector3FromVector2AndY(goalPosition, roadYLevel)
 	) * CFrame.Angles(0, ROAD_ANGLE_CORRECTION, 0)
 
-	local createTypeProperties = CREATE_TYPE_TO_PART_PROPERTIES[createType]
-	if createTypeProperties then
-		PropertiesUtils.ApplyProperties(newRoad, createTypeProperties.road)
-	end
+	applyVisualizeProperties(createType, roadType, newRoad)
 
 	return newRoad
 end
@@ -244,10 +216,11 @@ local function createRoadExtension(
 	roadPointAsset: BasePart,
 	roadAsset: BasePart,
 
+	roadType: string,
 	createType: string,
 	roadParent: Instance,
 
-	data: RoadData
+	data: _RoadData.type
 ): (BasePart, BasePart)
 	local originPosition = data.originPosition
 	local goalPosition = data.goalPosition
@@ -255,18 +228,20 @@ local function createRoadExtension(
 
 	local newRoadPoint, newRoadPointPosition = createRoadPoint(
 		roadPointAsset,
+		roadType,
 		createType,
 		roadParent,
-		roadPointData(
+		_RoadPointData(
 			goalPosition,
 			roadYLevel
 		)
 	)
 	local newRoad = createRoad(
 		roadAsset, 
+		roadType,
 		createType,
 		roadParent,
-		roadData(
+		_RoadData(
 			originPosition, 
 			newRoadPointPosition, 
 			roadYLevel
@@ -276,64 +251,7 @@ local function createRoadExtension(
 	return newRoadPoint, newRoad 
 end
 
--- creates SelectedRoadData
-local function selectedRoadData(
-	instance: BasePart, 
-	pointVector2Data: RoadBuilderEnums.PointVector2Data
-): RoadBuilderEnums.SelectedRoadData
-	return {
-		instance = instance,
-		pointVector2Data = pointVector2Data
-	}
-end
-
 --// PUBLIC
-
---[[	
-	Creates a RoadConfig, used for the identity of the road.
-]]
-function Creation.RoadConfig(
-	roadType: string, 
-	createType: string,
-	roadParent: Instance
-)
-	return {
-		roadType = roadType,
-		createType = createType,
-		roadParent = roadParent
-	}
-end
-
---[[
-	Creates a PointVector2Data, used for all road Creation methods. Automatically converts Vector3s into Vector2s to support module's preferred vector type.
-	
-	Use `yLevel` to dictate Vector3 Y level.
-]]
-function Creation.PointVector2Data(
-	position: Vector3 | Vector2, 
-	direction: (Vector3 | Vector2)?, 
-	yLevel: number?
-): RoadBuilderEnums.PointVector2Data
-	local isPositionVector3 = (typeof(position) == "Vector3")
-	local isdirectionVector3 = (typeof(direction) == "Vector3")
-
-	return {
-		position = isPositionVector3 and vector2FromVector3(position) or position;
-		direction = direction 
-			and (
-				isdirectionVector3 
-					and vector2FromVector3(direction) 
-					or direction
-			)
-			or DEFAULT_ROAD_DIRECTION;
-		yLevel = yLevel 
-			or (
-				isPositionVector3 
-					and position.Y
-					or error(`No Y level specified, yet "position" is not a Vector3`)
-			)
-	}
-end
 
 --[[
 	Creates a road origin, needs only origin PointVector2Data.
@@ -341,11 +259,11 @@ end
 	Vector3 Y Level defaults to `originVector2Data.yLevel`, but you can override with `overrideYLevel`
 ]]
 function Creation.CreateOriginRoad(
-	roadConfig: RoadBuilderEnums.RoadConfig,
+	roadConfig: RoadConfigData.type,
 
-	originVector2Data: RoadBuilderEnums.PointVector2Data,
+	originVector2Data: PointVector2Data.type,
 	overrideYLevel: number?
-): RoadBuilderEnums.SelectedRoadData
+): RoadCreationOutputData.type
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
 	local roadParent = roadConfig.roadParent
@@ -356,17 +274,18 @@ function Creation.CreateOriginRoad(
 
 	local newRoadPoint = createRoadPoint(
 		ROAD_POINT_ASSET,
+		roadType,
 		createType,
 		roadParent,
-		roadPointData(
+		_RoadPointData(
 			goalPosition,
 			goalYLevel
 		)
 	)
 
-	return selectedRoadData(
+	return RoadCreationOutputData(
 		newRoadPoint,
-		Creation.PointVector2Data(
+		PointVector2Data(
 			newRoadPoint.Position
 		)
 	)
@@ -378,8 +297,8 @@ end
 	Maximum angle defaults to `CURVE_ANGLE_MAXIMUM`, but you can override with `overrideMaximumAngle`.
 ]]
 function Creation.ValidateExtensionRoad(
-	originVector2Data: RoadBuilderEnums.PointVector2Data,
-	goalVector2Data: RoadBuilderEnums.PointVector2Data,
+	originVector2Data: PointVector2Data.type,
+	goalVector2Data: PointVector2Data.type,
 	overrideMaximumAngle: number?
 ): boolean
 	local originPosition = originVector2Data.position
@@ -407,12 +326,12 @@ end
 	Creates a road point at the goal, and a curved road from origin approaching goal (created road point).
 ]]
 function Creation.CreateExtensionRoad(
-	roadConfig: RoadBuilderEnums.RoadConfig,
+	roadConfig: RoadConfigData.type,
 
-	originVector2Data: RoadBuilderEnums.PointVector2Data, 
-	goalVector2Data: RoadBuilderEnums.PointVector2Data,
+	originVector2Data: PointVector2Data.type, 
+	goalVector2Data: PointVector2Data.type,
 	overrideYLevel: number?
-): RoadBuilderEnums.SelectedRoadData
+): RoadCreationOutputData.type
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
 	local roadParent = roadConfig.roadParent
@@ -447,17 +366,18 @@ function Creation.CreateExtensionRoad(
 			ROAD_POINT_ASSET,
 			ROAD_ASSET,
 
+			roadType,
 			createType,
 			roadParent,
 
-			roadData(
+			_RoadData(
 				previousRoadPointPosition,
 				curvePosition,
 				roadYLevel
 			)
 		)
 
-		previousRoadPointPosition = vector2FromVector3(newRoadPoint.Position)
+		previousRoadPointPosition = VectorUtils.Vector2FromVector3(newRoadPoint.Position)
 	end
 
 	-- make final road directly on "goalPosition"
@@ -465,10 +385,11 @@ function Creation.CreateExtensionRoad(
 		ROAD_POINT_ASSET,
 		ROAD_ASSET,
 
+		roadType,
 		createType,
 		roadParent,
 
-		roadData(
+		_RoadData(
 			previousRoadPointPosition,
 			goalPosition,
 			roadYLevel
@@ -477,13 +398,13 @@ function Creation.CreateExtensionRoad(
 
 	-- direction vector3 from last point to goal point (used for angle validation)
 	local goalDirection = (
-		vector3FromVector2AndY(goalPosition, roadYLevel) 
-		- vector3FromVector2AndY(previousRoadPointPosition, roadYLevel)
+		VectorUtils.Vector3FromVector2AndY(goalPosition, roadYLevel) 
+		- VectorUtils.Vector3FromVector2AndY(previousRoadPointPosition, roadYLevel)
 	).Unit
 
-	return selectedRoadData(
+	return RoadCreationOutputData(
 		endRoadPoint, 
-		Creation.PointVector2Data(
+		PointVector2Data(
 			goalPosition,
 			goalDirection,
 			roadYLevel
