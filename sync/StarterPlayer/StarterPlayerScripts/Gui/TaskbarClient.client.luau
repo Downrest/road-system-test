@@ -17,6 +17,10 @@ local TASKBAR_GUI_ANIM_DATA = TaskbarAnimData.taskbarGuiFrame
 
 local function init()
     PropertiesUtils.ApplyProperties(taskbarGuiFrame, TASKBAR_GUI_ANIM_DATA.initProperties)
+
+    buildButton.MouseButton1Down:Connect(function()
+        FocusSignals.MainInterface.FocusGuis(GuiAssetGetter.BuildGui.gui).DefocusAllGuisExcept()
+    end)
 end
 
 init()
@@ -37,8 +41,4 @@ FocusSignals.MainInterface.OnDefocus(taskbarGui, function()
         TASKBAR_GUI_ANIM_DATA.defocusedTweenData.tweenInfo, 
         TASKBAR_GUI_ANIM_DATA.defocusedTweenData.tweenProperties
     ):Play()
-end)
-
-buildButton.MouseButton1Down:Connect(function()
-    FocusSignals.MainInterface.FocusGuis(GuiAssetGetter.BuildGui.gui).DefocusAllGuisExcept()
 end)
