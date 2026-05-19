@@ -90,6 +90,7 @@ end)
 RoadBuilderState.Effect(function()
 	if not states.isInBuildMenuState() then
 		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
+		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
 		RoadBuilderState.ResetStates()
 	end
 end)
