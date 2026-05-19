@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local InputSettings = require(StarterPlayer.StarterPlayerScripts.Inputs.InputSettings)
-local Signal = require(ReplicatedStorage.SharedUtils.Signal)
+local Signal = require(ReplicatedStorage.SharedPackages.Signal)
 
 local Manager = {}
 

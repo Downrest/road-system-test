@@ -5,7 +5,7 @@ local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCre
 local State = {}
 
 export type PlayerBuildState = {
-    SelectedRoad: RoadBuilderCreation.CreatedRoadPointData;
+    SelectedRoadPoint: any;
 }
 State.PlayerBuildStates = {}:: {[Player]: PlayerBuildState}
 
@@ -21,7 +21,7 @@ end
 ]]
 function State.NewPlayerState(player: Player)
     State.PlayerBuildStates[player] = {
-        SelectedRoad = nil;
+        SelectedRoadPoint = nil;
     }
 end
 

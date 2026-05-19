@@ -12,24 +12,23 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
-local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
-local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
-local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
-local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
+local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
 local MouseUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.MouseUtils)
 local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
 local RoadBuilderSelectionValidator = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderSelectionValidator)
-local CharmState = require(ReplicatedStorage.SharedUtils.CharmState)
 local InputManager = require(StarterPlayer.StarterPlayerScripts.Inputs.InputManager)
 local RoadBuilderState = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderState)
 local RoadBuilderVisualizer = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderUtils.RoadBuilderVisualizer)
 
-local isInBuildMenuState = RoadBuilderState.IsInBuildMenu
-local currentRoadTypeState = RoadBuilderState.CurrentRoadType
-local selectedRoadPointState = RoadBuilderState.SelectedRoadPoint
-local simulatedRoadPointState = RoadBuilderState.SimulatedRoadPoint
-local isPromptedSelection = RoadBuilderState.IsPromptedSelection
+--// CONFIGURATION
+
+local RENDER_THROTTLE_PER_ROAD_DISTANCE = {
+	throttleSeconds = .05;
+	roadDistance = 600;
+}
+
+local states = RoadBuilderState.GetStates()
 
 local currentMouseCast: RaycastResult
 
@@ -38,58 +37,77 @@ local currentMouseCast: RaycastResult
 	to prompt road creation
 ]]
 InputManager.OnPress:Connect(function()
+	local capturedStates = RoadBuilderState.CaptureStates()
+
 	if 
-		not isInBuildMenuState() 
-		or not simulatedRoadPointState()
+		not capturedStates.isInBuildMenuState
+		or not capturedStates.simulatedRoadPointState
 	then
 		return
 	end
 
-	selectedRoadPointState(simulatedRoadPointState())
-	isPromptedSelection(true)
-	local _, selectTriggeredSignal, undoTriggeredSignal, destructor = RoadBuilderVisualizer.AddSelectionPrompt(simulatedRoadPointState())
+	states.isPromptedSelectionState(true)
+	local _, selectTriggeredSignal, undoTriggeredSignal, destructor = RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPointState)
 
 	selectTriggeredSignal:Connect(function()
-		destructor()
-		RoadBuilderEvents.CreateRoadRequest:FireServer(
-			simulatedRoadPointState().Position, 
-			currentRoadTypeState()
-		)
+		states.selectedRoadPointState(capturedStates.simulatedRoadPointState)
+		states.isPromptedSelectionState(false)
 
-		task.wait()
-		isPromptedSelection(false)
+		if capturedStates.selectedRoadPointState then
+			RoadBuilderEvents.CreateRoadRequest:FireServer(
+				capturedStates.currentRoadTypeState,
+				RoadVariantEnums.RoadExtension,
+				PointVector2Data(
+					capturedStates.selectedRoadPointState.Position,
+					states.selectedRoadVector2Direction()
+				), 
+				PointVector2Data(capturedStates.simulatedRoadPointState.Position)
+			)
+
+			states.selectedRoadVector2Direction(RoadBuilderVisualizer.simulatedRoadContainer[capturedStates.simulatedRoadPointState].endRoadPointVector2Data.direction)
+		else
+			RoadBuilderEvents.CreateRoadRequest:FireServer(
+				capturedStates.currentRoadTypeState,
+				RoadVariantEnums.RoadPoint,
+				PointVector2Data(capturedStates.simulatedRoadPointState.Position)
+			)
+		end
+
+		destructor()
 	end)
 	undoTriggeredSignal:Connect(function()
-		isPromptedSelection(false)
+		states.isPromptedSelectionState(false)
+
+		states.selectedRoadPointState(nil)
 		destructor()
-		selectedRoadPointState(nil)
 	end)
 end)
 
 --[[
 	if state is exited (meaning player is no longer in build menu)
-	clear selected road data on the server
+	clear selected road data
 ]]
-CharmState.subscribe(isInBuildMenuState, function()
-	-- RoadBuilderEvents.ClearSelectedRoadRequest:FireServer()
-	RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
-	selectedRoadPointState(nil)
+RoadBuilderState.Effect(function()
+	if not states.isInBuildMenuState() then
+		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
+		RoadBuilderState.ResetStates()
+	end
 end)
 
---[[
-	if road request (CreateRoadRequest:FireServer()) is successful,
-	server returns data to the client for visualization purposes
-]]
--- RoadBuilderEvents.CreateRoadRequest.OnClientEvent:Connect(function(
--- 	createSuccess: boolean,
--- 	createdRoad: BasePart
--- )
--- 	selectedRoadPointState(createdRoad)
--- end)
-
+local renderThrottle = 0
 RunService.RenderStepped:Connect(function()
+	if renderThrottle > 0 then
+		renderThrottle -= task.wait()
+		return
+	end
+
+	local capturedStates = RoadBuilderState.CaptureStates()
+
 	-- has selected? prevent clearing of visualized road
-	if isPromptedSelection() then
+	if 
+		not capturedStates.isInBuildMenuState
+		or capturedStates.isPromptedSelectionState
+	then
 		return
 
 	-- else, continue with visualization rerender
@@ -97,30 +115,40 @@ RunService.RenderStepped:Connect(function()
 		-- clear current visualization data
 		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
 
-		-- dont create new visualization if not in build menu
-		if not isInBuildMenuState() then
-			return
-		end
-
 		-- dont create new visualization no raycastresult from mouse
 		currentMouseCast = MouseUtils.GetMouseCast()
 		if not currentMouseCast then
 			return
 		end
-
+			
+		local castPosition = currentMouseCast.Position
 		local isCastInstanceValidSelection = RoadBuilderSelectionValidator.VerifyRoadPoint(currentMouseCast.Instance)
 
 		if isCastInstanceValidSelection then
-			warn("SELECTING SOMETHINGG")
-			simulatedRoadPointState(currentMouseCast.Instance)
+			states.simulatedRoadPointState(currentMouseCast.Instance)
 		else
-			local castPosition = currentMouseCast.Position
+			local simulatedInstance: BasePart
+			
+			if capturedStates.selectedRoadPointState then
+				local selectedRoadToMouseDistance = (capturedStates.selectedRoadPointState.Position - castPosition).Magnitude
+				renderThrottle = selectedRoadToMouseDistance * (RENDER_THROTTLE_PER_ROAD_DISTANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_DISTANCE.roadDistance)
 
-			local instance = RoadBuilderVisualizer.SimulateRoadPoint(
-				currentRoadTypeState(),
-				castPosition
-			)
-			simulatedRoadPointState(instance)
+				simulatedInstance = RoadBuilderVisualizer.SimulateRoad(
+					capturedStates.currentRoadTypeState,
+					PointVector2Data(
+						capturedStates.selectedRoadPointState.Position, 
+						states.selectedRoadVector2Direction()
+					),
+					PointVector2Data(castPosition)
+				)
+			else
+				simulatedInstance = RoadBuilderVisualizer.SimulateRoadPoint(
+					capturedStates.currentRoadTypeState,
+					PointVector2Data(castPosition)
+				)
+			end
+
+			states.simulatedRoadPointState(simulatedInstance)
 		end
 	end
 end)

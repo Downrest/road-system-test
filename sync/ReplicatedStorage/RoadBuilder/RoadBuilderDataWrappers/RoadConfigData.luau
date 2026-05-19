@@ -10,8 +10,8 @@ return function(
 	roadParent: Instance
 ): type
     assert(roadType, "No roadType: string")
-    assert(roadType, "No createType: string")
-    assert(roadType, "No roadParent: Instance")
+	assert(createType, "No createType: string")
+	assert(roadParent, "No roadParent: Instance")
 
     return {
         roadType = roadType,

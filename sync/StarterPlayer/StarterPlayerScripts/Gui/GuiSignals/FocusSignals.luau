@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Signal = require(ReplicatedStorage.SharedUtils.Signal)
+local Signal = require(ReplicatedStorage.SharedPackages.Signal)
 local TableUtils = require(ReplicatedStorage.SharedUtils.TableUtils)
 
 local FocusSignals = {}

@@ -7,7 +7,7 @@ local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWr
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
 local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter)
-local Signal = require(ReplicatedStorage.SharedUtils.Signal)
+local Signal = require(ReplicatedStorage.SharedPackages.Signal)
 
 local Visualizer = {}
 
@@ -25,14 +25,15 @@ local SELECTION_GUI_ASSET = RoadBuilderAssetGetter.guis.SelectionGui
 
 type DestructorFunction = () -> ()
 type VisualizationData = {
-    destructor: DestructorFunction;
-    [string]: any
+	destructor: DestructorFunction;
 }
 type SelectionAssetData = VisualizationData & {
     selectTriggeredSignal: Signal.Signal;
     undoTriggeredSignal: Signal.Signal;
 }
-type SimulatedRoadData = VisualizationData
+type SimulatedRoadData = VisualizationData & {
+    endRoadPointVector2Data: PointVector2Data.type
+}
 
 --[[
     VISUALIZATION CONTAINER
@@ -45,12 +46,14 @@ type VisualizationContainer<Data> = {[Instance]: Data}
 Visualizer.selectionDataContainer = {}:: VisualizationContainer<SelectionAssetData>
 Visualizer.simulatedRoadContainer = {}:: VisualizationContainer<SimulatedRoadData>
 
-local function indexInstanceWithData(
+local function indexInstancesWithData(
     tableForIndex: {[any]: {any}},
-    instanceToIndex: Instance,
+    instancesToIndex: {Instance},
     data: {[string]: VisualizationData}
 )
-    tableForIndex[instanceToIndex] = data
+    for _, instance in instancesToIndex do
+        tableForIndex[instance] = data
+    end
 end
 
 function Visualizer.ClearVisualizationData(
@@ -69,6 +72,7 @@ end
 function Visualizer.AddSelectionPrompt(adornee: BasePart): (
     Instance, Signal.Signal, Signal.Signal, DestructorFunction
 )
+    
 	local selectionGuiClone = SELECTION_GUI_ASSET:Clone()
     selectionGuiClone.Parent = PlayerUtils.playerGui
     selectionGuiClone.Adornee = adornee
@@ -89,12 +93,13 @@ function Visualizer.AddSelectionPrompt(adornee: BasePart): (
     local function destructor()
         selectionGuiClone:Destroy()
         selectTriggeredSignal:Destroy()
-        undoTriggeredSignal:Destroy()
+		undoTriggeredSignal:Destroy()
+		Visualizer.selectionDataContainer[selectionGuiClone] = nil
     end
 
-    indexInstanceWithData(
+    indexInstancesWithData(
         Visualizer.selectionDataContainer,
-        selectionGuiClone,
+        {selectionGuiClone},
         {
             selectTriggeredSignal = selectTriggeredSignal;
             undoTriggeredSignal = undoTriggeredSignal;
@@ -112,10 +117,8 @@ end
 ]]
 function Visualizer.SimulateRoadPoint(
     roadType: string,
-    position: Vector3
-): (
-    Instance, DestructorFunction
-)
+    originVector2Data: PointVector2Data.type
+): (Instance, DestructorFunction)
     local originRoadOutput = RoadBuilderCreation.CreateOriginRoad(
         RoadConfigData(
             roadType,
@@ -123,22 +126,67 @@ function Visualizer.SimulateRoadPoint(
             SELECTION_PARENT
         ),
 
-        PointVector2Data(position)
+        originVector2Data
     )
+    local originRoadPointInstance = originRoadOutput.endRoadPointInstance
 
     local function destructor()
-        originRoadOutput.endRoadInstance:Destroy()
+		originRoadPointInstance:Destroy()
+		Visualizer.simulatedRoadContainer[originRoadPointInstance] = nil
     end
 
-    indexInstanceWithData(
+    indexInstancesWithData(
         Visualizer.simulatedRoadContainer,
-        originRoadOutput.endRoadInstance,
+        {originRoadPointInstance},
         {
             destructor = destructor;
         }
     )
 
-    return originRoadOutput.endRoadInstance, destructor
+    return originRoadPointInstance, destructor
+end
+
+--[[
+
+]]
+function Visualizer.SimulateRoad(
+    roadType: string,
+    originVector2Data: PointVector2Data.type,
+    goalVector2Data: PointVector2Data.type
+): (BasePart, PointVector2Data.type, {BasePart}, DestructorFunction)
+    local extensionRoadOutput = RoadBuilderCreation.CreateExtensionRoad(
+        RoadConfigData(
+            roadType,
+            CreateTypeEnums.Visualize,
+            SELECTION_PARENT
+        ),
+        
+        originVector2Data,
+        goalVector2Data
+    )
+    local endRoadPointInstance = extensionRoadOutput.endRoadPointInstance
+    local endRoadPointVector2Data = extensionRoadOutput.endRoadPointVector2Data
+
+    local dependentRoadInstances = extensionRoadOutput.dependentRoadInstances
+
+    local function destructor()
+		endRoadPointInstance:Destroy()
+		for _, instance: BasePart in dependentRoadInstances do
+			instance:Destroy()
+		end
+		Visualizer.simulatedRoadContainer[endRoadPointInstance] = nil
+    end
+
+    indexInstancesWithData(
+        Visualizer.simulatedRoadContainer,
+        {endRoadPointInstance},
+        {
+            endRoadPointVector2Data = endRoadPointVector2Data;
+			destructor = destructor;
+        }
+    )
+
+    return endRoadPointInstance, endRoadPointVector2Data, dependentRoadInstances, destructor
 end
 
 return Visualizer

@@ -6,6 +6,7 @@ local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWr
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
 local RoadCreationOutputData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadCreationOutputData)
 local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
+local RoadInstanceTagEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadInstanceTagEnums)
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter)
@@ -173,6 +174,7 @@ local function createRoadPoint(
 	newRoadPoint.Parent = parent
 	newRoadPoint.Anchored = true
 	newRoadPoint.Position = Vector3.new(position.X, roadYLevel, position.Y)
+	newRoadPoint:AddTag(RoadInstanceTagEnums.RoadPoint)
 
 	applyVisualizeProperties(createType, roadType, newRoadPoint)
 
@@ -206,12 +208,14 @@ local function createRoad(
 		VectorUtils.Vector3FromVector2AndY(roadCenterPosition, roadYLevel), 
 		VectorUtils.Vector3FromVector2AndY(goalPosition, roadYLevel)
 	) * CFrame.Angles(0, ROAD_ANGLE_CORRECTION, 0)
+	newRoad:AddTag(RoadInstanceTagEnums.RoadPoint)
 
 	applyVisualizeProperties(createType, roadType, newRoad)
 
 	return newRoad
 end
 
+-- merges both createRoad() and createRoadPoint()
 local function createRoadExtension(
 	roadPointAsset: BasePart,
 	roadAsset: BasePart,
@@ -345,6 +349,8 @@ function Creation.CreateExtensionRoad(
 	local ROAD_ASSET = ASSETS.road[roadType]
 	local ROAD_POINT_ASSET = ASSETS.roadPoint[roadType]
 
+	local dependentRoads = {}
+
 	-- state
 	local previousRoadPointPosition: Vector2 = originPosition
 
@@ -362,7 +368,7 @@ function Creation.CreateExtensionRoad(
 			t
 		)
 
-		local newRoadPoint, _ = createRoadExtension(
+		local newRoadPoint, newRoad = createRoadExtension(
 			ROAD_POINT_ASSET,
 			ROAD_ASSET,
 
@@ -376,12 +382,14 @@ function Creation.CreateExtensionRoad(
 				roadYLevel
 			)
 		)
+		table.insert(dependentRoads, newRoadPoint)
+		table.insert(dependentRoads, newRoad)
 
 		previousRoadPointPosition = VectorUtils.Vector2FromVector3(newRoadPoint.Position)
 	end
 
 	-- make final road directly on "goalPosition"
-	local endRoadPoint = createRoadExtension(
+	local endRoadPoint, endRoad = createRoadExtension(
 		ROAD_POINT_ASSET,
 		ROAD_ASSET,
 
@@ -395,6 +403,7 @@ function Creation.CreateExtensionRoad(
 			roadYLevel
 		)
 	)
+	table.insert(dependentRoads, endRoad)
 
 	-- direction vector3 from last point to goal point (used for angle validation)
 	local goalDirection = (
@@ -408,7 +417,9 @@ function Creation.CreateExtensionRoad(
 			goalPosition,
 			goalDirection,
 			roadYLevel
-		)
+		),
+
+		dependentRoads
 	)
 end
 

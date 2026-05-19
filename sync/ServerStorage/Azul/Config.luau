@@ -4,5 +4,15 @@
 -- More info about the format:
 -- https://azul-docs.vercel.app/advanced-usage/#per-place-daemon-configuration
 
-return {}
+return {
+	deleteOrphansOnConnect = true,
+	pushMappings = {
+		{
+			source = "sync/ReplicatedStorage/SharedPackages",
+			destination = { "ReplicatedStorage", "SharedPackages" },
+			destructive = true,
+			rojoMode = true,
+		}
+	}
+}
 			
