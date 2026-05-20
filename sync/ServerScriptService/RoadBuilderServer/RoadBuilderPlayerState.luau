@@ -1,3 +1,8 @@
+--[[
+	UNUSED FOR NOW... I THINK... IDK ILL STILL FIGURE IT OUT
+	biiig refactors are in place
+]]
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
