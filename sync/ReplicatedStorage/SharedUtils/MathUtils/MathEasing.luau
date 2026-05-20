@@ -20,6 +20,21 @@ function Easing.GetEasingPointsTuple(n: number, easeFunc: (number) -> (number)):
 end
 
 --[[
+	SINE
+]]
+
+function Easing.EaseInSine(x: number): number
+	return 1 - math.cos((x * math.pi) / 2)
+end
+
+--[[
+
+]]
+function Easing.EaseOutSine(x: number): number
+	return math.sin((x * math.pi) / 2)
+end
+
+--[[
 	QUART
 ]]
 
@@ -28,6 +43,13 @@ end
 ]]
 function Easing.EaseInQuart(x: number): number
 	return x^4
+end
+
+--[[
+	https://easings.net/#easeOutQuart
+]]
+function Easing.EaseOutQuart(x: number): number
+	return 1 - math.pow(1 - x, 4)
 end
 
 --[[

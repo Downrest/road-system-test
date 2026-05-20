@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
+local RoadPointCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadPointCache)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
 local MouseUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.MouseUtils)
@@ -46,11 +47,23 @@ InputManager.OnPress:Connect(function()
 		return
 	end
 
+	-- just incase
+	RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
+
 	states.isPromptedSelectionState(true)
 	local _, selectTriggeredSignal, undoTriggeredSignal, destructor = RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPointState)
 
 	selectTriggeredSignal:Connect(function()
 		states.selectedRoadPointState(capturedStates.simulatedRoadPointState)
+		-- local updatedSelectedRoadPointState = states.selectedRoadPointState()
+
+		local roadPointDataFromServer: RoadPointCache.type = RoadBuilderEvents.RequestRoadData:InvokeServer(
+			capturedStates.simulatedRoadPointState.Position
+		)
+		if roadPointDataFromServer then
+			warn(roadPointDataFromServer.vector2Direction)
+		end
+
 		states.isPromptedSelectionState(false)
 
 		if capturedStates.selectedRoadPointState then
@@ -59,7 +72,9 @@ InputManager.OnPress:Connect(function()
 				RoadVariantEnums.RoadExtension,
 				PointVector2Data(
 					capturedStates.selectedRoadPointState.Position,
-					states.selectedRoadVector2Direction()
+					roadPointDataFromServer 
+						and roadPointDataFromServer.vector2Direction
+						or states.selectedRoadVector2Direction()
 				), 
 				PointVector2Data(capturedStates.simulatedRoadPointState.Position)
 			)
@@ -121,7 +136,7 @@ RunService.RenderStepped:Connect(function()
 		if not currentMouseCast then
 			return
 		end
-			
+		
 		local castPosition = currentMouseCast.Position
 		local isCastInstanceValidSelection = RoadBuilderSelectionValidator.VerifyRoadPoint(currentMouseCast.Instance)
 
@@ -134,7 +149,7 @@ RunService.RenderStepped:Connect(function()
 				local selectedRoadToMouseDistance = (capturedStates.selectedRoadPointState.Position - castPosition).Magnitude
 				renderThrottle = selectedRoadToMouseDistance * (RENDER_THROTTLE_PER_ROAD_DISTANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_DISTANCE.roadDistance)
 
-				simulatedInstance = RoadBuilderVisualizer.SimulateRoad(
+				simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
 					capturedStates.currentRoadTypeState,
 					PointVector2Data(
 						capturedStates.selectedRoadPointState.Position, 

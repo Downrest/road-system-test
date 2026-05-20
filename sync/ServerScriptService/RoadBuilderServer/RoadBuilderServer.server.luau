@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadBuilderPlayerState = require(ServerScriptService.RoadBuilderServer.RoadBuilderPlayerState)
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
@@ -38,6 +39,10 @@ local function assertRoadVariant(
     end
 end
 
+RoadBuilderEvents.RequestRoadData.OnServerInvoke = function(player, roadPointPosition: Vector3)
+	return RoadBuilderCache.RoadPointCacheList[RoadBuilderCache.Vector3ToRoadInstanceCacheList[roadPointPosition]]
+end
+
 --[[
     client requests road creation assuming there is available road selection data which is either
         provided via selectedRoadInstance
@@ -56,8 +61,7 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
     assertRoadVariant(roadVariant, fromPositionVector2Data, toPositionVector2Data)
 
     local roadOutput: RoadCreationOutputData.type
-    warn(fromPositionVector2Data.direction)
-    
+
     -- step 0: create origin road
     if roadVariant == RoadVariantEnums.RoadPoint then
          roadOutput = RoadBuilderCreation.CreateOriginRoad(

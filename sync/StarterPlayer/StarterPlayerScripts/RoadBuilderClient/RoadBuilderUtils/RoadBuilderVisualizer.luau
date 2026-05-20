@@ -149,7 +149,7 @@ end
 --[[
 
 ]]
-function Visualizer.SimulateRoad(
+function Visualizer.SimulateRoadExtension(
     roadType: string,
     originVector2Data: PointVector2Data.type,
     goalVector2Data: PointVector2Data.type

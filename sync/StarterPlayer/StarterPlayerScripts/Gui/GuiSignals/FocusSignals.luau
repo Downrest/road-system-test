@@ -8,8 +8,8 @@ local FocusSignals = {}
 type DefocusGuiSignal = Signal.Signal<(exemptedGuis: {GuiObject}) -> ()>
 type FocusGuiSignal = Signal.Signal<(focusedGuis: {GuiObject}) -> ()>
 
-local function onFocus(_signal: FocusGuiSignal, targettedGui: GuiObject, focusFunc: () -> ())
-	return _signal:Connect(function(focusedGuis)
+local function onFocus(signal: FocusGuiSignal, targettedGui: GuiObject, focusFunc: () -> ())
+	return signal:Connect(function(focusedGuis)
 		-- return if targettedGui isnt one of the guis in focus request
 		if not table.find(focusedGuis, targettedGui) then
 			return
@@ -19,8 +19,8 @@ local function onFocus(_signal: FocusGuiSignal, targettedGui: GuiObject, focusFu
 	end)
 end
 
-local function onDefocus(_signal: DefocusGuiSignal, targettedGui: GuiObject, defocusFunc: () -> ())
-	return _signal:Connect(function(exemptedGuis) 
+local function onDefocus(signal: DefocusGuiSignal, targettedGui: GuiObject, defocusFunc: () -> ())
+	return signal:Connect(function(exemptedGuis) 
 		-- return if targettedGui is in exemptedGuis (unaffected by defocus request)
 		if table.find(exemptedGuis, targettedGui) then
 			return
@@ -30,10 +30,10 @@ local function onDefocus(_signal: DefocusGuiSignal, targettedGui: GuiObject, def
 	end)
 end
 
-local function defocusAllGuisExcept(_signal: DefocusGuiSignal, ...: GuiObject | {GuiObject})
+local function defocusAllGuisExcept(signal: DefocusGuiSignal, ...: GuiObject | {GuiObject})
 	local exemptedGuis = TableUtils.Merge(...)
 
-	_signal:Fire(exemptedGuis)
+	signal:Fire(exemptedGuis)
 end
 
 local function focusGuis(_focusSignal: FocusGuiSignal, _defocusSignal: DefocusGuiSignal, ...: GuiObject | {GuiObject})
