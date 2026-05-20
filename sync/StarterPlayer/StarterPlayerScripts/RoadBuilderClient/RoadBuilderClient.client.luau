@@ -50,36 +50,31 @@ InputManager.OnPress:Connect(function()
 	-- just incase
 	RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
 
+	--[[
+		enable selection state, pauses resimulation of clientside roads (sent to the server)
+	]]
 	states.isPromptedSelectionState(true)
 	local _, selectTriggeredSignal, undoTriggeredSignal, destructor = RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPointState)
 
-	selectTriggeredSignal:Connect(function()
-		states.selectedRoadPointState(capturedStates.simulatedRoadPointState)
-		-- local updatedSelectedRoadPointState = states.selectedRoadPointState()
+	selectTriggeredSignal:Once(function()
+		-- road extension
+		if states.selectedRoadPointState() then
+			local selectedRoadPointData: RoadPointCache.type = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.selectedRoadPointState.Position)
 
-		local roadPointDataFromServer: RoadPointCache.type = RoadBuilderEvents.RequestRoadData:InvokeServer(
-			capturedStates.simulatedRoadPointState.Position
-		)
-		if roadPointDataFromServer then
-			warn(roadPointDataFromServer.vector2Direction)
-		end
-
-		states.isPromptedSelectionState(false)
-
-		if capturedStates.selectedRoadPointState then
+			warn(selectedRoadPointData and tostring(selectedRoadPointData.vector2Direction))
 			RoadBuilderEvents.CreateRoadRequest:FireServer(
 				capturedStates.currentRoadTypeState,
 				RoadVariantEnums.RoadExtension,
-				PointVector2Data(
-					capturedStates.selectedRoadPointState.Position,
-					roadPointDataFromServer 
-						and roadPointDataFromServer.vector2Direction
-						or states.selectedRoadVector2Direction()
-				), 
+				PointVector2Data(capturedStates.selectedRoadPointState.Position, selectedRoadPointData and selectedRoadPointData.vector2Direction),
 				PointVector2Data(capturedStates.simulatedRoadPointState.Position)
 			)
 
-			states.selectedRoadVector2Direction(RoadBuilderVisualizer.simulatedRoadContainer[capturedStates.simulatedRoadPointState].endRoadPointVector2Data.direction)
+			local selectedRoadPointData: RoadPointCache.type = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.simulatedRoadPointState.Position)
+			if selectedRoadPointData then
+				states.selectedRoadVector2Direction(selectedRoadPointData.vector2Direction)
+			end
+
+		-- road point
 		else
 			RoadBuilderEvents.CreateRoadRequest:FireServer(
 				capturedStates.currentRoadTypeState,
@@ -88,13 +83,16 @@ InputManager.OnPress:Connect(function()
 			)
 		end
 
-		destructor()
-	end)
-	undoTriggeredSignal:Connect(function()
-		states.isPromptedSelectionState(false)
+		states.selectedRoadPointState(capturedStates.simulatedRoadPointState)
 
-		states.selectedRoadPointState(nil)
 		destructor()
+		states.isPromptedSelectionState(false)
+	end)
+	undoTriggeredSignal:Once(function()
+		states.selectedRoadPointState(nil)
+
+		destructor()
+		states.isPromptedSelectionState(false)
 	end)
 end)
 

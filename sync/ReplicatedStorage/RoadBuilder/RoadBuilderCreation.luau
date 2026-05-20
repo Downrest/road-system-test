@@ -268,6 +268,11 @@ local function createRoadExtension(
 			x.Anchored = true
 			x.Size = Vector3.one
 			x.Position = VectorUtils.Vector3FromVector2AndY(VectorUtils.Vector2FromVector3(newRoadPoint.Position) + direction, originData.yLevel)
+		
+			local roadDebug = game.ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter.Guis.RoadPointDebug:Clone()
+			roadDebug.Parent = x
+			roadDebug.Adornee = x
+			roadDebug.TextLabel.Text = tostring(direction)
 		end
 	end
 
@@ -366,6 +371,9 @@ function Creation.CreateExtensionRoad(
 	-- state
 	local previousRoadPointPosition: Vector2 = originPosition
 
+	if createType == CreateTypeEnums.Default then
+		warn("SERVER: " .. tostring(originDirection))
+	end
 	--[[
 		bezier curve: make road follow alongside this curve approaching "goalPosition"
 
