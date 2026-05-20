@@ -73,6 +73,7 @@ InputManager.OnPress:Connect(function()
 			if selectedRoadPointData then
 				states.selectedRoadVector2Direction(selectedRoadPointData.vector2Direction)
 			end
+			
 
 		-- road point
 		else
