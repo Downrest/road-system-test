@@ -145,7 +145,7 @@ function Visualizer.SimulateRoadPoint(
         RoadConfigData(
             roadType,
             CreateTypeEnums.Visualize,
-            SIMULATED_ROAD_MODEL
+            camera
         ),
 
         originVector2Data
@@ -171,17 +171,23 @@ end
 --[[
     Attaches `cachedRoadPointHighlights[1]` to `roadPoint`.
 ]]
-function Visualizer.AttachPointHighlightToRoadPoint(roadPoint: BasePart)
+function Visualizer.AttachRoadPointHighlight(roadPoint: BasePart)
     cachedRoadPointHighlights[1].Adornee = roadPoint
 end
 
 --[[
     Unattaches `cachedRoadPointHighlights[1]` to any road point.
 ]]
-function Visualizer.UnattachPointHighlight()
+function Visualizer.UnattachRoadPointHighlight()
     cachedRoadPointHighlights[1].Adornee = nil
 end
 
+-- function Visualizer.UnattachAllRoadPointHighlights()
+
+--     for _, highlight in cachedRoadPointHighlights do
+--         highlight.Adornee = nil
+--     end
+-- end
 
 --[[
     Creates a (simulated) road extension, returning a destructor function.
@@ -197,7 +203,7 @@ function Visualizer.SimulateRoadExtension(
         RoadConfigData(
             roadType,
             CreateTypeEnums.Visualize,
-            SIMULATED_ROAD_MODEL
+            camera
         ),
 
         originVector2Data

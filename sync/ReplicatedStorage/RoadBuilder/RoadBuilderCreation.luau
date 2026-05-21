@@ -250,6 +250,9 @@ local function createRoadExtension(
 	)
 
 	if createType == CreateTypeEnums.Default then
+		warn(VectorUtils.Vector3FromVector2AndY(goalData.position, originData.yLevel))
+		warn(RoadBuilderCache.Vector3ToRoadInstanceCacheList)
+
 		local roadToGoalDirection = (
 			VectorUtils.Vector2FromVector3(newRoadPoint.Position) 
 			- VectorUtils.Vector2FromVector3(newRoad.Position)

@@ -85,8 +85,6 @@ InputManager.OnPress:Connect(function()
 		-- updated selectedroadpoint
 		states.selectedRoadPoint(capturedStates.simulatedRoadPoint)
 		destructor()
-
-		task.wait(BUILD_YIELD_BEFORE_RESIMULATION_RESET)
 		states.isPromptedSelection(false)
 	end)
 	-- when clicking the "undo button"
@@ -146,28 +144,27 @@ RunService.RenderStepped:Connect(function()
 		local castPosition = currentMouseCast.Position
 		local isCastInstanceValidSelection = RoadBuilderSelectionValidator.VerifyRoadPoint(currentMouseCast.Instance)
 
-		if isCastInstanceValidSelection then
-			local mouseCastInstance = currentMouseCast.Instance
+		local simulatedInstance: BasePart
 
-			RoadBuilderVisualizer.AttachPointHighlightToRoadPoint(mouseCastInstance)
-			states.simulatedRoadPoint(mouseCastInstance)
-		else
-			local simulatedInstance: BasePart
-			
-			RoadBuilderVisualizer.UnattachPointHighlight()
-			
-			if capturedStates.selectedRoadPoint then
-				local selectedRoadToMouseDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
-				renderThrottle = selectedRoadToMouseDistance * (RENDER_THROTTLE_PER_ROAD_DISTANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_DISTANCE.roadDistance)
+		if capturedStates.selectedRoadPoint then
+			local selectedRoadToMouseDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
+			renderThrottle = selectedRoadToMouseDistance * (RENDER_THROTTLE_PER_ROAD_DISTANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_DISTANCE.roadDistance)
 
-				simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
-					capturedStates.currentRoadType,
-					PointVector2Data(
-						capturedStates.selectedRoadPoint.Position, 
-						states.selectedRoadVector2Direction()
-					),
-					PointVector2Data(castPosition)
+			simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
+				capturedStates.currentRoadType,
+				PointVector2Data(
+					capturedStates.selectedRoadPoint.Position, 
+					states.selectedRoadVector2Direction()
+				),
+				PointVector2Data(
+					isCastInstanceValidSelection 
+						and currentMouseCast.Instance.Position
+						or castPosition
 				)
+			)
+		else
+			if isCastInstanceValidSelection then
+				simulatedInstance = currentMouseCast.Instance
 			else
 				simulatedInstance = RoadBuilderVisualizer.SimulateRoadPoint(
 					capturedStates.currentRoadType,
@@ -175,7 +172,41 @@ RunService.RenderStepped:Connect(function()
 				)
 			end
 
-			states.simulatedRoadPoint(simulatedInstance)
+			RoadBuilderVisualizer.AttachRoadPointHighlight(simulatedInstance)
 		end
+
+		states.simulatedRoadPoint(simulatedInstance)
+		--TODO this can be shorter!
+		-- if isCastInstanceValidSelection then
+		-- 	local mouseCastInstance = currentMouseCast.Instance
+
+		-- 	states.simulatedRoadPoint(mouseCastInstance)
+		-- 	RoadBuilderVisualizer.AttachRoadPointHighlight(mouseCastInstance)
+		-- else
+		-- 	local simulatedInstance: BasePart
+			
+		-- 	if capturedStates.selectedRoadPoint then
+		-- 		local selectedRoadToMouseDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
+		-- 		renderThrottle = selectedRoadToMouseDistance * (RENDER_THROTTLE_PER_ROAD_DISTANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_DISTANCE.roadDistance)
+
+		-- 		simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
+		-- 			capturedStates.currentRoadType,
+		-- 			PointVector2Data(
+		-- 				capturedStates.selectedRoadPoint.Position, 
+		-- 				states.selectedRoadVector2Direction()
+		-- 			),
+		-- 			PointVector2Data(castPosition)
+		-- 		)
+		-- 	else
+		-- 		simulatedInstance = RoadBuilderVisualizer.SimulateRoadPoint(
+		-- 			capturedStates.currentRoadType,
+		-- 			PointVector2Data(castPosition)
+		-- 		)
+
+		-- 		RoadBuilderVisualizer.AttachRoadPointHighlight(simulatedInstance)
+		-- 	end
+
+		-- 	states.simulatedRoadPoint(simulatedInstance)
+		-- end
 	end
 end)
