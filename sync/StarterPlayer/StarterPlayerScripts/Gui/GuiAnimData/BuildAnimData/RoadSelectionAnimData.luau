@@ -2,7 +2,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 
 local AnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimData)
 local AnimTweenData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimTweenData)
-local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
+local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAssetGetter)
 
 local roadSelection = GuiAssetGetter.BuildGui.roadSelection
 local ROAD_SELECTION_BAKED_POSITION = roadSelection.Position

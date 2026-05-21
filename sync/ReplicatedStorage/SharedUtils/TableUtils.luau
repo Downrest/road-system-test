@@ -10,7 +10,7 @@ end
 --[[
 	Merges `...` into a single array `{...}` in descending order (the first parameters are in the first slot of the array).
 
-	`...` can either be an arrays, non-arrays, or both.
+	`...` can either be an arrays, non-tables, or both.
 ]]
 function TableUtils.Merge(...: {any} | any): {any}
 	local parameters = {...}

@@ -6,16 +6,15 @@ local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCre
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
 local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
-local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter)
+local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
 local Signal = require(ReplicatedStorage.SharedPackages.Signal)
+local branch = require(ReplicatedStorage.SharedPackages.Vide.branch)
+local context = require(ReplicatedStorage.SharedPackages.Vide.context)
+local TableUtils = require(ReplicatedStorage.SharedUtils.TableUtils)
 
 local Visualizer = {}
 
 local camera = workspace.CurrentCamera
-
-local SELECTION_PARENT = Instance.new("Folder")
-SELECTION_PARENT.Name = "SimulatedRoads"
-SELECTION_PARENT.Parent = camera
 
 local SELECTION_GUI_ASSET = RoadBuilderAssetGetter.guis.SelectionGui
 
@@ -46,6 +45,29 @@ type VisualizationContainer<Data> = {[Instance]: Data}
 Visualizer.selectionDataContainer = {}:: VisualizationContainer<SelectionAssetData>
 Visualizer.simulatedRoadContainer = {}:: VisualizationContainer<SimulatedRoadData>
 
+--[[
+    HIGHLIGHTS
+]]
+
+local ROAD_POINT_HIGHLIGHT_LIMIT = 30
+
+local SIMULATED_ROAD_MODEL = Instance.new("Model")
+SIMULATED_ROAD_MODEL.Parent = camera
+
+local VISUALIZE_ROAD_HIGHLIGHT_ASSET = RoadBuilderAssetGetter.highlights.VisualizeRoadHighlight
+local VISUALIZE_ROAD_POINT_HIGHLIGHT_ASSET = RoadBuilderAssetGetter.highlights.VisualizeRoadPointHighlight
+
+local simulatedRoadModelHighlight = VISUALIZE_ROAD_HIGHLIGHT_ASSET:Clone()
+simulatedRoadModelHighlight.Parent = camera
+simulatedRoadModelHighlight.Adornee = SIMULATED_ROAD_MODEL
+
+local cachedRoadPointHighlights: {Highlight} = table.create(ROAD_POINT_HIGHLIGHT_LIMIT)
+for _ = 1, ROAD_POINT_HIGHLIGHT_LIMIT do
+    local highlight = VISUALIZE_ROAD_POINT_HIGHLIGHT_ASSET:Clone()
+    highlight.Parent = camera
+    table.insert(cachedRoadPointHighlights, highlight)
+end
+
 local function indexInstancesWithData(
     tableForIndex: {[any]: {any}},
     instancesToIndex: {Instance},
@@ -67,7 +89,7 @@ end
 --[[
     Creates a selection prompt parented to `adornee` parameter, returning 1) select-triggered signal, 2) undo-triggered signal, and 3) destructor function.
 
-    The created selection prompt is also indexed into `Visualizer.selectionDataContainer` with the returned values as its value.
+    The created selection prompt is also indexed into `Visualizer.selectionDataContainer`.
 ]]
 function Visualizer.AddSelectionPrompt(adornee: BasePart): (
     Instance, Signal.Signal, Signal.Signal, DestructorFunction
@@ -111,9 +133,9 @@ function Visualizer.AddSelectionPrompt(adornee: BasePart): (
 end
 
 --[[
-    Creates a (simulated) road point, returning 1) a destructor function.
+    Creates a (simulated) road point, returning a destructor function.
 
-    The created road point is also indexed into `Visualizer.simulatedRoadContainer` with the returned values as its value.
+     The created road point is also indexed into `Visualizer.simulatedRoadContainer`.
 ]]
 function Visualizer.SimulateRoadPoint(
     roadType: string,
@@ -123,7 +145,7 @@ function Visualizer.SimulateRoadPoint(
         RoadConfigData(
             roadType,
             CreateTypeEnums.Visualize,
-            SELECTION_PARENT
+            SIMULATED_ROAD_MODEL
         ),
 
         originVector2Data
@@ -147,18 +169,44 @@ function Visualizer.SimulateRoadPoint(
 end
 
 --[[
+    Attaches `cachedRoadPointHighlights[1]` to `roadPoint`.
+]]
+function Visualizer.AttachPointHighlightToRoadPoint(roadPoint: BasePart)
+    cachedRoadPointHighlights[1].Adornee = roadPoint
+end
 
+--[[
+    Unattaches `cachedRoadPointHighlights[1]` to any road point.
+]]
+function Visualizer.UnattachPointHighlight()
+    cachedRoadPointHighlights[1].Adornee = nil
+end
+
+
+--[[
+    Creates a (simulated) road extension, returning a destructor function.
+
+    The created road extension is also indexed into `Visualizer.simulatedRoadContainer`.
 ]]
 function Visualizer.SimulateRoadExtension(
     roadType: string,
     originVector2Data: PointVector2Data.PointVector2Data,
     goalVector2Data: PointVector2Data.PointVector2Data
 ): (BasePart, PointVector2Data.PointVector2Data, {BasePart}, DestructorFunction)
+    local originRoadPointOutput = RoadBuilderCreation.CreateOriginRoad(
+        RoadConfigData(
+            roadType,
+            CreateTypeEnums.Visualize,
+            SIMULATED_ROAD_MODEL
+        ),
+
+        originVector2Data
+    )
     local extensionRoadOutput = RoadBuilderCreation.CreateExtensionRoad(
         RoadConfigData(
             roadType,
             CreateTypeEnums.Visualize,
-            SELECTION_PARENT
+            SIMULATED_ROAD_MODEL
         ),
         
         originVector2Data,
@@ -168,12 +216,31 @@ function Visualizer.SimulateRoadExtension(
     local endRoadPointVector2Data = extensionRoadOutput.endRoadPointVector2Data
 
     local dependentRoadInstances = extensionRoadOutput.dependentRoadInstances
+    table.insert(dependentRoadInstances.roadPoints, originRoadPointOutput.endRoadPointInstance) -- extra line to insert originRoadPoint
+
+    --[[
+        add highlights from the very goal till the origin (prioritizing closest to player)
+        highlights are only limited to `ROAD_POINT_HIGHLIGHT_LIMIT`
+    ]]
+    for i = #dependentRoadInstances.roadPoints, 1, -1 do
+        local roadPoint = dependentRoadInstances.roadPoints[i]
+        local highlight = cachedRoadPointHighlights[(#dependentRoadInstances.roadPoints+1) - i]
+
+        if highlight then
+            highlight.Adornee = roadPoint
+        else
+            break
+        end
+    end
 
     local function destructor()
 		endRoadPointInstance:Destroy()
-		for _, instance: BasePart in dependentRoadInstances do
-			instance:Destroy()
-		end
+		for _, roadPoint in dependentRoadInstances.roadPoints do
+            roadPoint:Destroy()
+        end
+        for _, road in dependentRoadInstances.roads do
+            road:Destroy()
+        end
 		Visualizer.simulatedRoadContainer[endRoadPointInstance] = nil
     end
 

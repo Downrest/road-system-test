@@ -51,15 +51,19 @@ InputManager.OnPress:Connect(function()
 
 	-- when clicking the "select button"
 	selectTriggeredSignal:Once(function()
+		--[[
+			road extension creation with the newly updated direction state from roadpoint selection
+			after each request, the direction state is again reupdated via `CreateRoadRequest.OnClientEvent`
+		]]
 		if states.selectedRoadPoint() then
-			local selectedRoadPointCache: RoadPointCache.RoadPointCache = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.selectedRoadPoint.Position)
-
 			RoadBuilderEvents.CreateRoadRequest:FireServer(
 				capturedStates.currentRoadType,
 				RoadVariantEnums.RoadExtension,
-				PointVector2Data(capturedStates.selectedRoadPoint.Position, selectedRoadPointCache and selectedRoadPointCache.vector2Direction),
+				PointVector2Data(capturedStates.selectedRoadPoint.Position, states.selectedRoadVector2Direction()),
 				PointVector2Data(capturedStates.simulatedRoadPoint.Position)
 			)
+
+		-- road point selection/creation, reupdates the direction state
 		else
 			local simulatedRoadPointCache: RoadPointCache.RoadPointCache = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.simulatedRoadPoint.Position)
 
@@ -143,9 +147,14 @@ RunService.RenderStepped:Connect(function()
 		local isCastInstanceValidSelection = RoadBuilderSelectionValidator.VerifyRoadPoint(currentMouseCast.Instance)
 
 		if isCastInstanceValidSelection then
-			states.simulatedRoadPoint(currentMouseCast.Instance)
+			local mouseCastInstance = currentMouseCast.Instance
+
+			RoadBuilderVisualizer.AttachPointHighlightToRoadPoint(mouseCastInstance)
+			states.simulatedRoadPoint(mouseCastInstance)
 		else
 			local simulatedInstance: BasePart
+			
+			RoadBuilderVisualizer.UnattachPointHighlight()
 			
 			if capturedStates.selectedRoadPoint then
 				local selectedRoadToMouseDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude

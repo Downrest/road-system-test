@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
-local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter)
+local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
 
 local roadType = RoadTypeEnums.Gravel
 
@@ -19,12 +19,12 @@ return {
         road = {
             CanQuery = false;
             CanCollide = false;
-			Transparency = .8;
+			Transparency = 0;
 		};
 		roadPoint = {
             CanQuery = false;
             CanCollide = false;
-			Transparency = .5;
+			Transparency = 0;
 		};
     }
 }

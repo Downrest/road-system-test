@@ -4,7 +4,7 @@ local TweenService = game:GetService("TweenService")
 
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local TaskbarAnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData.TaskbarAnimData)
-local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
+local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAssetGetter)
 local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
 local GuiAnimations = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAnimations)
 

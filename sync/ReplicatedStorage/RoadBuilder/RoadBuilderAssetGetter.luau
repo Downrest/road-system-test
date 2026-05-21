@@ -8,8 +8,12 @@ local roadsFolder = script.Roads
 local gravelFolder = roadsFolder.Gravel
 local mudFolder = roadsFolder.Mud
 
-local guis = script.Guis
-local selectionGui = guis.SelectionGui
+local guisFolder = script.Guis
+local selectionGui = guisFolder.SelectionGui
+
+local highlightsFolder = script.Highlights
+local visualizeRoadHighlight = highlightsFolder.VisualizeRoadHighlight
+local visualizeRoadPointHighlight = highlightsFolder.VisualizeRoadPointHighlight
 
 AssetGetter.roadAssets = {
 	[RoadTypeEnums.Gravel] = {
@@ -24,6 +28,11 @@ AssetGetter.roadAssets = {
 
 AssetGetter.guis = {
 	SelectionGui = selectionGui;
+}
+
+AssetGetter.highlights = {
+	VisualizeRoadHighlight = visualizeRoadHighlight;
+	VisualizeRoadPointHighlight = visualizeRoadPointHighlight;
 }
 
 return AssetGetter

@@ -7,7 +7,7 @@ local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPres
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
 local GuiAnimations = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAnimations)
-local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
+local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAssetGetter)
 local RoadBuilderState = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderState)
 
 local roadSelection = GuiAssetGetter.BuildGui.roadSelection

@@ -1,6 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local ServerScriptService = game:GetService("ServerScriptService")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadCache)
@@ -12,7 +11,7 @@ local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.C
 local RoadInstanceTagEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadInstanceTagEnums)
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
-local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter)
+local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
 local create = require(ReplicatedStorage.SharedPackages.Vide.create)
 local MathCurves = require(ReplicatedStorage.SharedUtils.MathUtils.MathCurves)
 local MathEasing = require(ReplicatedStorage.SharedUtils.MathUtils.MathEasing)
@@ -24,6 +23,7 @@ local Creation = {}
 
 --// CONFIGURATION
 
+local Z_FIGHTING_Y_OFFSET = .001
 -- limits road points from getting closer in distance between either origin or goal beyond this value
 local CURVE_EDGE_LIMIT = 2.5
 local CURVE_FREQUENCY_PER_N_STUDS = {
@@ -177,7 +177,7 @@ local function createRoadPoint(
 	local newRoadPoint = roadAsset:Clone()
 	newRoadPoint.Parent = parent
 	newRoadPoint.Anchored = true
-	newRoadPoint.Position = Vector3.new(originPosition.X, originYLevel, originPosition.Y)
+	newRoadPoint.Position = Vector3.new(originPosition.X, originYLevel + Z_FIGHTING_Y_OFFSET, originPosition.Y)
 	newRoadPoint:AddTag(RoadInstanceTagEnums.RoadPoint)
 
 	applyVisualizeProperties(createType, roadType, newRoadPoint)
@@ -296,7 +296,7 @@ function Creation.CreateOriginRoad(
 	roadConfig: RoadConfigData.RoadConfigData,
 
 	originVector2Data: PointVector2Data.PointVector2Data
-): RoadCreationOutputData.RoadCreationOutput
+): RoadCreationOutputData.RoadCreationOutputData
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
 	assertCreateDefaultTypeToServer(createType)
@@ -361,7 +361,7 @@ function Creation.CreateExtensionRoad(
 
 	originVector2Data: PointVector2Data.PointVector2Data, 
 	goalVector2Data: PointVector2Data.PointVector2Data
-): RoadCreationOutputData.RoadCreationOutput
+): RoadCreationOutputData.RoadCreationOutputData
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
 	assertCreateDefaultTypeToServer(createType)
@@ -380,7 +380,11 @@ function Creation.CreateExtensionRoad(
 	local ROAD_ASSET = ASSETS.road[roadType]
 	local ROAD_POINT_ASSET = ASSETS.roadPoint[roadType]
 
-	local dependentRoads = {}
+	local dependentRoads = {
+		roadPoints = {};
+		roads = {};
+		n = 0;
+	}
 	local previousRoadPointPosition: Vector2 = originPosition
 
 	--[[
@@ -422,8 +426,9 @@ function Creation.CreateExtensionRoad(
 			PointVector2Data(previousRoadPointPosition, nil, originYLevel),
 			PointVector2Data(curvePosition, nil, goalYLevel)
 		)
-		table.insert(dependentRoads, newRoadPoint)
-		table.insert(dependentRoads, newRoad)
+		table.insert(dependentRoads.roadPoints, newRoadPoint)
+		table.insert(dependentRoads.roads, newRoad)
+		dependentRoads.n += 2
 
 		previousRoadPointPosition = curvePosition
 	end
@@ -440,7 +445,8 @@ function Creation.CreateExtensionRoad(
 		PointVector2Data(previousRoadPointPosition, nil, originYLevel),
 		PointVector2Data(goalPosition, nil, goalYLevel)
 	)
-	table.insert(dependentRoads, goalRoad)
+	table.insert(dependentRoads.roads, goalRoad)
+	dependentRoads.n += 1
 	
 	return RoadCreationOutputData(
 		goalRoadPoint, 

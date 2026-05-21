@@ -60,7 +60,7 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
 )
     assertRoadVariant(roadVariant, fromPositionVector2Data, toPositionVector2Data)
 
-    local roadOutput: RoadCreationOutputData.RoadCreationOutput
+    local roadOutput: RoadCreationOutputData.RoadCreationOutputData
 
     -- step 0: create origin road
     if roadVariant == RoadVariantEnums.RoadPoint then
