@@ -230,8 +230,7 @@ local function createRoadExtension(
 	roadParent: Instance,
 
 	originData: PointVector2Data.type,
-	goalData: PointVector2Data.type,
-	T
+	goalData: PointVector2Data.type
 ): (BasePart, BasePart)
 	local newRoadPoint = createRoadPoint(
 		roadPointAsset,
@@ -262,18 +261,18 @@ local function createRoadExtension(
 			)
 		)
 
-		if T then
-			local x = Instance.new("Part")
-			x.Parent = workspace
-			x.Anchored = true
-			x.Size = Vector3.one
-			x.Position = VectorUtils.Vector3FromVector2AndY(VectorUtils.Vector2FromVector3(newRoadPoint.Position) + direction, originData.yLevel)
-		
-			local roadDebug = game.ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter.Guis.RoadPointDebug:Clone()
-			roadDebug.Parent = x
-			roadDebug.Adornee = x
-			roadDebug.TextLabel.Text = tostring(direction)
-		end
+		local x = Instance.new("Part")
+		x.Parent = workspace
+		x.Anchored = true
+		x.Size = Vector3.one
+		x.Position = VectorUtils.Vector3FromVector2AndY(VectorUtils.Vector2FromVector3(newRoadPoint.Position) + direction, originData.yLevel)
+	
+		local roadDebug = game.ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter.Guis.RoadPointDebug:Clone()
+		roadDebug.Parent = x
+		roadDebug.Adornee = x
+		roadDebug.TextLabel.Text = tostring(direction)
+
+		return newRoadPoint, newRoad, direction
 	end
 
 	return newRoadPoint, newRoad 
@@ -409,8 +408,7 @@ function Creation.CreateExtensionRoad(
 			roadParent,
 
 			PointVector2Data(previousRoadPointPosition, nil, roadYLevel),
-			PointVector2Data(curvePosition, nil, roadYLevel),
-			1
+			PointVector2Data(curvePosition, nil, roadYLevel)
 		)
 		table.insert(dependentRoads, newRoadPoint)
 		table.insert(dependentRoads, newRoad)
@@ -419,7 +417,7 @@ function Creation.CreateExtensionRoad(
 	end
 
 	-- make final road directly on "goalPosition"
-	local endRoadPoint, endRoad = createRoadExtension(
+	local endRoadPoint, endRoad, direction = createRoadExtension(
 		ROAD_POINT_ASSET,
 		ROAD_ASSET,
 
@@ -432,21 +430,17 @@ function Creation.CreateExtensionRoad(
 	)
 	table.insert(dependentRoads, endRoad)
 
-	-- direction vector3 from last point to goal point (used for angle validation)
-	local goalDirection = (
-		VectorUtils.Vector3FromVector2AndY(goalPosition, roadYLevel) 
-		- VectorUtils.Vector3FromVector2AndY(previousRoadPointPosition, roadYLevel)
-	).Unit
+	endRoadPoint.Color = Color3.new(1, 0, 0)
 
-	--if createType == CreateTypeEnums.Default then
-	--	warn(RoadBuilderCache.RoadPointCacheList)
-	--end
-
+	if createType == CreateTypeEnums.Default then
+		warn(`CREATION: {direction}`)
+	end
+	
 	return RoadCreationOutputData(
 		endRoadPoint, 
 		PointVector2Data(
 			goalPosition,
-			goalDirection,
+			direction,
 			roadYLevel
 		),
 

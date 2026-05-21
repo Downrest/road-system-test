@@ -76,6 +76,7 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
 
     -- step 1: extend from origin road
 	else
+        warn("creating extension")
         roadOutput = RoadBuilderCreation.CreateExtensionRoad(
             RoadConfigData(
                 roadType, 
@@ -86,13 +87,17 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
             fromPositionVector2Data, 
             toPositionVector2Data
         )
-    end
+	end
+	
+	warn(`AFTER CREATION, SERVER: {roadOutput.endRoadPointVector2Data.direction}`)
+
+	-- warn(roadOutput.endRoadPointInstance.Position)
+	-- warn(roadOutput.endRoadPointVector2Data.position)
 
     -- toggles client's road visualization (either success or failure to create road)
-	-- RoadBuilderEvents.CreateRoadRequest:FireClient(
-	-- 	player, 
-	-- 	true, 
-	-- 	roadOutput.endRoadPointInstance,
-    --     roadOutput.endRoadPointVector2
-	-- )
+	RoadBuilderEvents.CreateRoadRequest:FireClient(
+		player, 
+		true, 
+		roadOutput.endRoadPointVector2Data.direction
+	)
 end)
