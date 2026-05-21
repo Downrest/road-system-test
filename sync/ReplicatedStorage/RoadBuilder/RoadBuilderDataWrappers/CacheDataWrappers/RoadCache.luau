@@ -1,10 +1,10 @@
-export type type = {
+export type RoadCache = {
     dependeeRoadPoints: {BasePart};
 }
 
 return function(
     dependeeRoadPoints: {BasePart}
-): type
+): RoadCache
     return {
         roadPoints = dependeeRoadPoints;
     }

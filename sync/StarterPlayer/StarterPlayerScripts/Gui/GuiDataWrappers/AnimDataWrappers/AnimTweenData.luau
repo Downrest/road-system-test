@@ -1,15 +1,15 @@
 local StarterPlayer = game:GetService("StarterPlayer")
 
-local AnimDataProperties = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimDataProperties)
+local AnimPropertiesData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimPropertiesData)
 
-export type type = {
+export type AnimTweenData = {
 	tweenInfo: TweenInfo;
-	tweenProperties: AnimDataProperties.type;
+	tweenProperties: AnimPropertiesData.AnimPropertiesData;
 }
 
 return function(
 	tweenInfo: TweenInfo,
-	tweenProperties: AnimDataProperties.type
+	tweenProperties: AnimPropertiesData.AnimPropertiesData
 )
 	return {
 		tweenInfo = tweenInfo;

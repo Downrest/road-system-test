@@ -1,13 +1,3 @@
---[[
-	steps
-		hover on something
-		click
-		visualization stops moving, assuming ur "finalizing ur selection"
-		either / or X shows up
-			click / and itll build
-			click X and itll let u keep moving the selection
-]]
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
@@ -24,6 +14,7 @@ local RoadBuilderVisualizer = require(StarterPlayer.StarterPlayerScripts.RoadBui
 
 --// CONFIGURATION
 
+local DEFAULT_ROAD_POINT_AXIS = Vector2.xAxis
 local RENDER_THROTTLE_PER_ROAD_DISTANCE = {
 	throttleSeconds = .05;
 	roadDistance = 600;
@@ -41,78 +32,76 @@ InputManager.OnPress:Connect(function()
 	local capturedStates = RoadBuilderState.CaptureStates()
 
 	if 
-		not capturedStates.isInBuildMenuState
-		or not capturedStates.simulatedRoadPointState
+		not capturedStates.isInBuildMenu
+		or not capturedStates.simulatedRoadPoint
 	then
 		return
 	end
 
-	-- just incase
+	-- enable selection state, pauses resimulation of clientside roads (sent to the server)
+	states.isPromptedSelection(true)
+
+	-- selection prompt gui (while clearing the previous prompt guis)
 	RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
+	local _, selectTriggeredSignal, undoTriggeredSignal, destructor = RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPoint)
 
-	--[[
-		enable selection state, pauses resimulation of clientside roads (sent to the server)
-	]]
-	states.isPromptedSelectionState(true)
-	local _, selectTriggeredSignal, undoTriggeredSignal, destructor = RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPointState)
-
+	-- when clicking the "select button"
 	selectTriggeredSignal:Once(function()
-		local simulatedRoadPointData: RoadPointCache.type = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.simulatedRoadPointState.Position)
-		
-		if simulatedRoadPointData then
-			states.selectedRoadVector2Direction(simulatedRoadPointData.vector2Direction)
+		if states.selectedRoadPoint() then
+			local selectedRoadPointCache: RoadPointCache.RoadPointCache = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.selectedRoadPoint.Position)
+
+			RoadBuilderEvents.CreateRoadRequest:FireServer(
+				capturedStates.currentRoadType,
+				RoadVariantEnums.RoadExtension,
+				PointVector2Data(capturedStates.selectedRoadPoint.Position, selectedRoadPointCache and selectedRoadPointCache.vector2Direction),
+				PointVector2Data(capturedStates.simulatedRoadPoint.Position)
+			)
 		else
-				-- road extension
-			if states.selectedRoadPointState() then
-				local selectedRoadPointData: RoadPointCache.type = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.selectedRoadPointState.Position)
+			local simulatedRoadPointCache: RoadPointCache.RoadPointCache = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.simulatedRoadPoint.Position)
 
-				warn(`STARTS WITH: {selectedRoadPointData and tostring(selectedRoadPointData.vector2Direction)}`)
-				RoadBuilderEvents.CreateRoadRequest:FireServer(
-					capturedStates.currentRoadTypeState,
-					RoadVariantEnums.RoadExtension,
-					PointVector2Data(capturedStates.selectedRoadPointState.Position, selectedRoadPointData and selectedRoadPointData.vector2Direction),
-					PointVector2Data(capturedStates.simulatedRoadPointState.Position)
-				)
+			-- if road point has existed and has cache, update direction state to cached direction
+			if simulatedRoadPointCache then
+				states.selectedRoadVector2Direction(simulatedRoadPointCache.vector2Direction)
 
-				-- local selectedRoadPointData: RoadPointCache.type = RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.simulatedRoadPointState.Position)
-				-- warn(`new selection: {selectedRoadPointData and tostring(selectedRoadPointData.vector2Direction)}`)
-				-- if selectedRoadPointData then
-				-- 	states.selectedRoadVector2Direction(selectedRoadPointData.vector2Direction)
-				-- end
-
-			-- road point
+			-- otherwise, create completely new roadpoint and update direction state to `DEFAULT_ROAD_POINT_AXIS`
 			else
 				RoadBuilderEvents.CreateRoadRequest:FireServer(
-					capturedStates.currentRoadTypeState,
+					capturedStates.currentRoadType,
 					RoadVariantEnums.RoadPoint,
-					PointVector2Data(capturedStates.simulatedRoadPointState.Position)
+					PointVector2Data(capturedStates.simulatedRoadPoint.Position)
 				)
+				states.selectedRoadVector2Direction(DEFAULT_ROAD_POINT_AXIS)
 			end
 		end
 
-		states.selectedRoadPointState(capturedStates.simulatedRoadPointState)
+		-- updated selectedroadpoint
+		states.selectedRoadPoint(capturedStates.simulatedRoadPoint)
 
 		destructor()
-		states.isPromptedSelectionState(false)
+		states.isPromptedSelection(false)
 	end)
+	-- when clicking the "undo button"
 	undoTriggeredSignal:Once(function()
-		states.selectedRoadPointState(nil)
+		-- reset selectedroadpoint
+		states.selectedRoadPoint(nil)
 
 		destructor()
-		states.isPromptedSelectionState(false)
+		states.isPromptedSelection(false)
 	end)
 end)
 
---[[
-	if state is exited (meaning player is no longer in build menu)
-	clear selected road data
-]]
-RoadBuilderState.Effect(function()
-	if not states.isInBuildMenuState() then
-		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
-		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
-		RoadBuilderState.ResetStates()
-	end
+RoadBuilderState.ScopeState(function(effect)
+	effect(function()
+		--[[
+			if state is exited (meaning player is no longer in build menu)
+			clear selected road data
+		]]
+		if not states.isInBuildMenu() then
+			RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
+			RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
+			RoadBuilderState.ResetStates()
+		end
+	end)
 end)
 
 RoadBuilderEvents.CreateRoadRequest.OnClientEvent:Connect(function(boolean, direction)
@@ -130,8 +119,8 @@ RunService.RenderStepped:Connect(function()
 
 	-- has selected? prevent clearing of visualized road
 	if 
-		not capturedStates.isInBuildMenuState
-		or capturedStates.isPromptedSelectionState
+		not capturedStates.isInBuildMenu
+		or capturedStates.isPromptedSelection
 	then
 		return
 
@@ -150,30 +139,30 @@ RunService.RenderStepped:Connect(function()
 		local isCastInstanceValidSelection = RoadBuilderSelectionValidator.VerifyRoadPoint(currentMouseCast.Instance)
 
 		if isCastInstanceValidSelection then
-			states.simulatedRoadPointState(currentMouseCast.Instance)
+			states.simulatedRoadPoint(currentMouseCast.Instance)
 		else
 			local simulatedInstance: BasePart
 			
-			if capturedStates.selectedRoadPointState then
-				local selectedRoadToMouseDistance = (capturedStates.selectedRoadPointState.Position - castPosition).Magnitude
+			if capturedStates.selectedRoadPoint then
+				local selectedRoadToMouseDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
 				renderThrottle = selectedRoadToMouseDistance * (RENDER_THROTTLE_PER_ROAD_DISTANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_DISTANCE.roadDistance)
 
 				simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
-					capturedStates.currentRoadTypeState,
+					capturedStates.currentRoadType,
 					PointVector2Data(
-						capturedStates.selectedRoadPointState.Position, 
+						capturedStates.selectedRoadPoint.Position, 
 						states.selectedRoadVector2Direction()
 					),
 					PointVector2Data(castPosition)
 				)
 			else
 				simulatedInstance = RoadBuilderVisualizer.SimulateRoadPoint(
-					capturedStates.currentRoadTypeState,
+					capturedStates.currentRoadType,
 					PointVector2Data(castPosition)
 				)
 			end
 
-			states.simulatedRoadPointState(simulatedInstance)
+			states.simulatedRoadPoint(simulatedInstance)
 		end
 	end
 end)

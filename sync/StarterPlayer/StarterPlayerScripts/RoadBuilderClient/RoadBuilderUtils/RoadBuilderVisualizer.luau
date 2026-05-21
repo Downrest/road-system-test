@@ -32,7 +32,7 @@ type SelectionAssetData = VisualizationData & {
     undoTriggeredSignal: Signal.Signal;
 }
 type SimulatedRoadData = VisualizationData & {
-    endRoadPointVector2Data: PointVector2Data.type
+    endRoadPointVector2Data: PointVector2Data.PointVector2Data
 }
 
 --[[
@@ -117,7 +117,7 @@ end
 ]]
 function Visualizer.SimulateRoadPoint(
     roadType: string,
-    originVector2Data: PointVector2Data.type
+    originVector2Data: PointVector2Data.PointVector2Data
 ): (Instance, DestructorFunction)
     local originRoadOutput = RoadBuilderCreation.CreateOriginRoad(
         RoadConfigData(
@@ -151,9 +151,9 @@ end
 ]]
 function Visualizer.SimulateRoadExtension(
     roadType: string,
-    originVector2Data: PointVector2Data.type,
-    goalVector2Data: PointVector2Data.type
-): (BasePart, PointVector2Data.type, {BasePart}, DestructorFunction)
+    originVector2Data: PointVector2Data.PointVector2Data,
+    goalVector2Data: PointVector2Data.PointVector2Data
+): (BasePart, PointVector2Data.PointVector2Data, {BasePart}, DestructorFunction)
     local extensionRoadOutput = RoadBuilderCreation.CreateExtensionRoad(
         RoadConfigData(
             roadType,

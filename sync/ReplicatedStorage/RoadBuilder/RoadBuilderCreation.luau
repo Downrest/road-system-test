@@ -1,4 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadCache)
@@ -11,7 +13,7 @@ local RoadInstanceTagEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEn
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter)
-local context = require(ReplicatedStorage.SharedPackages.Vide.context)
+local create = require(ReplicatedStorage.SharedPackages.Vide.create)
 local MathCurves = require(ReplicatedStorage.SharedUtils.MathUtils.MathCurves)
 local MathEasing = require(ReplicatedStorage.SharedUtils.MathUtils.MathEasing)
 local MathGeneral = require(ReplicatedStorage.SharedUtils.MathUtils.MathGeneral)
@@ -22,6 +24,8 @@ local Creation = {}
 
 --// CONFIGURATION
 
+-- limits road points from getting closer in distance between either origin or goal beyond this value
+local CURVE_EDGE_LIMIT = 2.5
 local CURVE_FREQUENCY_PER_N_STUDS = {
 	frequency = 1,
 	nStuds = 5
@@ -33,7 +37,6 @@ local CURVE_LERP_VALUES = {
 	MathEasing.GetEasingPointsTuple(10, MathEasing.EaseInSine)
 }
 local CURVE_ANGLE_MAXIMUM = 45
-
 local ROAD_ANGLE_CORRECTION = math.pi/2
 local ASSETS = {
 	road = {
@@ -45,7 +48,6 @@ local ASSETS = {
 		[RoadTypeEnums.Mud] = RoadBuilderAssetGetter.roadAssets[RoadTypeEnums.Mud].roadPoint;
 	};
 }
-
 local ROAD_TYPE_TO_VISUALIZE_PROPERTIES = {
 	[RoadTypeEnums.Gravel] = RoadBuilderPresets.RoadTypeData[RoadTypeEnums.Gravel].VisualizeProperties;
 	[RoadTypeEnums.Mud] = RoadBuilderPresets.RoadTypeData[RoadTypeEnums.Mud].VisualizeProperties;
@@ -94,8 +96,8 @@ local function curveControlPointsFromCurveLerpValues(
 end
 
 local function applyVisualizeProperties(
-	createType: string,
-	roadType: string,
+	createType: CreateTypeEnums.CreateTypeEnums,
+	roadType: RoadTypeEnums.RoadTypeEnums,
 	roadPart: BasePart
 )
 	if createType ~= CreateTypeEnums.Visualize then
@@ -163,20 +165,19 @@ end
 local function createRoadPoint(
 	roadAsset: BasePart, 
 	
-	roadType: string,
-	createType: string, 
+	roadType: RoadTypeEnums.RoadTypeEnums,
+	createType: CreateTypeEnums.CreateTypeEnums, 
 	parent: Instance, 
 	
-	originData: PointVector2Data.type
+	originData: PointVector2Data.PointVector2Data
 ): (BasePart, Vector2)
-	local position = originData.position
-	local roadYLevel = originData.yLevel
-	local direction = originData.direction
+	local originPosition = originData.position
+	local originYLevel = originData.yLevel
 
 	local newRoadPoint = roadAsset:Clone()
 	newRoadPoint.Parent = parent
 	newRoadPoint.Anchored = true
-	newRoadPoint.Position = Vector3.new(position.X, roadYLevel, position.Y)
+	newRoadPoint.Position = Vector3.new(originPosition.X, originYLevel, originPosition.Y)
 	newRoadPoint:AddTag(RoadInstanceTagEnums.RoadPoint)
 
 	applyVisualizeProperties(createType, roadType, newRoadPoint)
@@ -187,17 +188,17 @@ end
 local function createRoad(
 	roadAsset: BasePart, 
 
-	roadType: string,
-	createType: string, 
+	roadType: RoadTypeEnums.RoadTypeEnums,
+	createType: CreateTypeEnums.CreateTypeEnums, 
 	parent: Instance, 
 	
-	originData: PointVector2Data.type,
-	goalData: PointVector2Data.type
+	originData: PointVector2Data.PointVector2Data,
+	goalData: PointVector2Data.PointVector2Data
 ): BasePart
 	local originPosition = originData.position
 	local goalPosition = goalData.position
 
-	--TODO PLACEHOLDER FOR Y LEVEL
+	--TODO PLACEHOLDER FOR Y LEVEL, in the future will support differing yLevels between origin and goal
 	local roadYLevel = originData.roadYLevel
 
 	local roadLength = (goalPosition - originPosition).Magnitude
@@ -225,13 +226,13 @@ local function createRoadExtension(
 	roadPointAsset: BasePart,
 	roadAsset: BasePart,
 
-	roadType: string,
-	createType: string,
+	roadType: RoadTypeEnums.RoadTypeEnums,
+	createType: CreateTypeEnums.CreateTypeEnums,
 	roadParent: Instance,
 
-	originData: PointVector2Data.type,
-	goalData: PointVector2Data.type
-): (BasePart, BasePart)
+	originData: PointVector2Data.PointVector2Data,
+	goalData: PointVector2Data.PointVector2Data
+): (BasePart, BasePart, Vector2?)
 	local newRoadPoint = createRoadPoint(
 		roadPointAsset,
 		roadType,
@@ -249,33 +250,39 @@ local function createRoadExtension(
 	)
 
 	if createType == CreateTypeEnums.Default then
-		local direction = (
+		local roadToGoalDirection = (
 			VectorUtils.Vector2FromVector3(newRoadPoint.Position) 
 			- VectorUtils.Vector2FromVector3(newRoad.Position)
 		).Unit
+
 		RoadBuilderCache.AddRoadPoint(
 			newRoadPoint, 
 			RoadPointCache(
 				{},
-				direction
+				roadToGoalDirection
 			)
 		)
 
-		local x = Instance.new("Part")
-		x.Parent = workspace
-		x.Anchored = true
-		x.Size = Vector3.one
-		x.Position = VectorUtils.Vector3FromVector2AndY(VectorUtils.Vector2FromVector3(newRoadPoint.Position) + direction, originData.yLevel)
+		-- local x = Instance.new("Part")
+		-- x.Parent = workspace
+		-- x.Anchored = true
+		-- x.Size = Vector3.one
+		-- x.Position = VectorUtils.Vector3FromVector2AndY(VectorUtils.Vector2FromVector3(newRoadPoint.Position) + roadToGoalDirection, originData.yLevel)
 	
-		local roadDebug = game.ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter.Guis.RoadPointDebug:Clone()
-		roadDebug.Parent = x
-		roadDebug.Adornee = x
-		roadDebug.TextLabel.Text = tostring(direction)
+		-- local roadDebug = game.ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderAssetGetter.Guis.RoadPointDebug:Clone()
+		-- roadDebug.Parent = x
+		-- roadDebug.Adornee = x
+		-- roadDebug.TextLabel.Text = tostring(roadToGoalDirection)
 
-		return newRoadPoint, newRoad, direction
+		return newRoadPoint, newRoad, roadToGoalDirection
 	end
-
 	return newRoadPoint, newRoad 
+end
+
+local function assertCreateDefaultTypeToServer(createType: CreateTypeEnums.CreateTypeEnums)
+	if createType == CreateTypeEnums.Default then
+		assert(RunService:IsServer(), "Passing `CreateTypeEnums.Default` can only be done on the server")
+	end
 end
 
 --// PUBLIC
@@ -286,12 +293,13 @@ end
 	Vector3 Y Level defaults to `originVector2Data.yLevel`, but you can override with `overrideYLevel`
 ]]
 function Creation.CreateOriginRoad(
-	roadConfig: RoadConfigData.type,
+	roadConfig: RoadConfigData.RoadConfigData,
 
-	originVector2Data: PointVector2Data.type
-): RoadCreationOutputData.type
+	originVector2Data: PointVector2Data.PointVector2Data
+): RoadCreationOutputData.RoadCreationOutput
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
+	assertCreateDefaultTypeToServer(createType)
 	local roadParent = roadConfig.roadParent
 
 	local ROAD_POINT_ASSET = ASSETS.roadPoint[roadType]
@@ -318,13 +326,15 @@ end
 	Maximum angle defaults to `CURVE_ANGLE_MAXIMUM`, but you can override with `overrideMaximumAngle`.
 ]]
 function Creation.ValidateExtensionRoad(
-	originVector2Data: PointVector2Data.type,
-	goalVector2Data: PointVector2Data.type,
+	originVector2Data: PointVector2Data.PointVector2Data,
+	goalVector2Data: PointVector2Data.PointVector2Data,
 	overrideMaximumAngle: number?
 ): boolean
 	local originPosition = originVector2Data.position
 	local originDirection = originVector2Data.direction
+
 	local goalPosition = goalVector2Data.position
+
 	local originToGoalDistance = (originPosition - goalPosition).Magnitude
 	local curveFrequency = CURVE_FREQUENCY_PER_N_STUDS.frequency * (originToGoalDistance / CURVE_FREQUENCY_PER_N_STUDS.nStuds)
 	local maximumCurveAngle = overrideMaximumAngle or CURVE_ANGLE_MAXIMUM
@@ -347,18 +357,23 @@ end
 	Creates a road point at the goal, and a curved road from origin approaching goal (created road point).
 ]]
 function Creation.CreateExtensionRoad(
-	roadConfig: RoadConfigData.type,
+	roadConfig: RoadConfigData.RoadConfigData,
 
-	originVector2Data: PointVector2Data.type, 
-	goalVector2Data: PointVector2Data.type
-): RoadCreationOutputData.type
+	originVector2Data: PointVector2Data.PointVector2Data, 
+	goalVector2Data: PointVector2Data.PointVector2Data
+): RoadCreationOutputData.RoadCreationOutput
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
+	assertCreateDefaultTypeToServer(createType)
 	local roadParent = roadConfig.roadParent
+
 	local originPosition = originVector2Data.position
 	local originDirection = originVector2Data.direction
+	local originYLevel = originVector2Data.yLevel
+	
 	local goalPosition = goalVector2Data.position
-	local roadYLevel = originVector2Data.yLevel
+	local goalYLevel = goalVector2Data.yLevel
+	
 	local originToGoalDistance = (originPosition - goalPosition).Magnitude
 	local curveFrequency = CURVE_FREQUENCY_PER_N_STUDS.frequency * (originToGoalDistance / CURVE_FREQUENCY_PER_N_STUDS.nStuds)
 
@@ -366,13 +381,8 @@ function Creation.CreateExtensionRoad(
 	local ROAD_POINT_ASSET = ASSETS.roadPoint[roadType]
 
 	local dependentRoads = {}
-
-	-- state
 	local previousRoadPointPosition: Vector2 = originPosition
 
-	if createType == CreateTypeEnums.Default then
-		warn("SERVER: " .. tostring(originDirection))
-	end
 	--[[
 		bezier curve: make road follow alongside this curve approaching "goalPosition"
 
@@ -394,8 +404,10 @@ function Creation.CreateExtensionRoad(
 			goalPosition, 
 			t
 		)
-
-		if (curvePosition - originPosition).Magnitude <= 2.5 then
+		local curveToOriginMagnitude = (curvePosition - originPosition).Magnitude
+		local curveToGoalMagnitude = (curvePosition - goalPosition).Magnitude
+		
+		if curveToOriginMagnitude <= CURVE_EDGE_LIMIT or curveToGoalMagnitude <= CURVE_EDGE_LIMIT then
 			continue
 		end
 
@@ -407,8 +419,8 @@ function Creation.CreateExtensionRoad(
 			createType,
 			roadParent,
 
-			PointVector2Data(previousRoadPointPosition, nil, roadYLevel),
-			PointVector2Data(curvePosition, nil, roadYLevel)
+			PointVector2Data(previousRoadPointPosition, nil, originYLevel),
+			PointVector2Data(curvePosition, nil, goalYLevel)
 		)
 		table.insert(dependentRoads, newRoadPoint)
 		table.insert(dependentRoads, newRoad)
@@ -417,7 +429,7 @@ function Creation.CreateExtensionRoad(
 	end
 
 	-- make final road directly on "goalPosition"
-	local endRoadPoint, endRoad, direction = createRoadExtension(
+	local goalRoadPoint, goalRoad, goalDirection = createRoadExtension(
 		ROAD_POINT_ASSET,
 		ROAD_ASSET,
 
@@ -425,23 +437,17 @@ function Creation.CreateExtensionRoad(
 		createType,
 		roadParent,
 
-		PointVector2Data(previousRoadPointPosition, nil, roadYLevel),
-		PointVector2Data(goalPosition, nil, roadYLevel)
+		PointVector2Data(previousRoadPointPosition, nil, originYLevel),
+		PointVector2Data(goalPosition, nil, goalYLevel)
 	)
-	table.insert(dependentRoads, endRoad)
-
-	endRoadPoint.Color = Color3.new(1, 0, 0)
-
-	if createType == CreateTypeEnums.Default then
-		warn(`CREATION: {direction}`)
-	end
+	table.insert(dependentRoads, goalRoad)
 	
 	return RoadCreationOutputData(
-		endRoadPoint, 
+		goalRoadPoint, 
 		PointVector2Data(
 			goalPosition,
-			direction,
-			roadYLevel
+			goalDirection,
+			goalYLevel
 		),
 
 		dependentRoads

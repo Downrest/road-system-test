@@ -1,14 +1,19 @@
-export type type = {
-	roadType: string, 
-	createType: string,
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
+local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
+
+export type RoadConfigData = {
+	roadType: RoadTypeEnums.RoadTypeEnums, 
+	createType: CreateTypeEnums.CreateTypeEnums,
 	roadParent: Instance
 }
 
 return function(
-    roadType: string, 
-	createType: string,
+    roadType: RoadTypeEnums.RoadTypeEnums, 
+	createType: CreateTypeEnums.CreateTypeEnums,
 	roadParent: Instance
-): type
+): RoadConfigData
     assert(roadType, "No roadType: string")
 	assert(createType, "No createType: string")
 	assert(roadParent, "No roadParent: Instance")

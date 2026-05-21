@@ -1,4 +1,4 @@
-export type type = {
+export type RoadPointCache = {
     dependentRoads: {BasePart},
     vector2Direction: Vector2
 }
@@ -6,7 +6,7 @@ export type type = {
 return function(
     dependentRoads: {BasePart},
     vector2Direction: Vector2
-): type
+): RoadPointCache
     return {
         dependentRoads = dependentRoads;
         vector2Direction = vector2Direction;

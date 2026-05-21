@@ -23,8 +23,8 @@ end)
 
 local function assertRoadVariant(
     roadVariant: string,
-    fromPositionVector2Data: PointVector2Data.type,
-    toPositionVector2Data: PointVector2Data.type?
+    fromPositionVector2Data: PointVector2Data.PointVector2Data,
+    toPositionVector2Data: PointVector2Data.PointVector2Data?
 )
     if roadVariant == RoadVariantEnums.RoadPoint then
         assert(
@@ -55,12 +55,12 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
     player: Player, 
     roadType: string,
     roadVariant: string,
-    fromPositionVector2Data: PointVector2Data.type,
-    toPositionVector2Data: PointVector2Data.type? -- only available if making road extensions
+    fromPositionVector2Data: PointVector2Data.PointVector2Data,
+    toPositionVector2Data: PointVector2Data.PointVector2Data? -- only available if making road extensions
 )
     assertRoadVariant(roadVariant, fromPositionVector2Data, toPositionVector2Data)
 
-    local roadOutput: RoadCreationOutputData.type
+    local roadOutput: RoadCreationOutputData.RoadCreationOutput
 
     -- step 0: create origin road
     if roadVariant == RoadVariantEnums.RoadPoint then
@@ -76,7 +76,6 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
 
     -- step 1: extend from origin road
 	else
-        warn("creating extension")
         roadOutput = RoadBuilderCreation.CreateExtensionRoad(
             RoadConfigData(
                 roadType, 
@@ -88,11 +87,6 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
             toPositionVector2Data
         )
 	end
-	
-	warn(`AFTER CREATION, SERVER: {roadOutput.endRoadPointVector2Data.direction}`)
-
-	-- warn(roadOutput.endRoadPointInstance.Position)
-	-- warn(roadOutput.endRoadPointVector2Data.position)
 
     -- toggles client's road visualization (either success or failure to create road)
 	RoadBuilderEvents.CreateRoadRequest:FireClient(

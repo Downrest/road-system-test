@@ -1,20 +1,21 @@
 local StarterPlayer = game:GetService("StarterPlayer")
 
+local AnimPropertiesData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimPropertiesData)
 local AnimTweenData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimTweenData)
-local AnimDataProperties = require(StarterPlayer.StarterPlayerScripts.Gui.GuiDataWrappers.AnimDataWrappers.AnimDataProperties)
 
-export type type = {
-	initProperties: AnimDataProperties.type;
 
-	focusedTweenData: AnimTweenData.type;
-	defocusedTweenData: AnimTweenData.type;
+export type AnimData = {
+	initProperties: AnimPropertiesData.AnimPropertiesData;
+
+	focusedTweenData: AnimTweenData.AnimTweenData;
+	defocusedTweenData: AnimTweenData.AnimTweenData;
 }
 
 return function(
-	initProperties: AnimDataProperties.type,
-	focusedTweenData: AnimTweenData.type,
-	defocusedTweenData: AnimTweenData.type
-): type
+	initProperties: AnimPropertiesData.AnimPropertiesData,
+	focusedTweenData: AnimTweenData.AnimTweenData,
+	defocusedTweenData: AnimTweenData.AnimTweenData
+): AnimData
 	return {
 		initProperties = initProperties;
 		focusedTweenData = focusedTweenData;

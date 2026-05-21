@@ -4,9 +4,9 @@ local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 
 local DEFAULT_VECTOR2_DIRECTION = Vector2.xAxis
 
-export type type = {
+export type PointVector2Data = {
 	position: Vector2,
-	direction: (Vector3 | Vector2),
+	direction: Vector2,
 	yLevel: number
 }
 
@@ -19,7 +19,7 @@ return function(
 	position: Vector3 | Vector2, 
 	direction: (Vector3 | Vector2)?, 
 	yLevel: number?
-): type	
+): PointVector2Data	
 	local isPositionVector3 = (typeof(position) == "Vector3")
 	local isdirectionVector3 = (typeof(direction) == "Vector3")
 

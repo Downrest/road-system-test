@@ -1,6 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local Vide = require(ReplicatedStorage.SharedPackages.Vide)
 
 local State = {}
@@ -23,12 +22,22 @@ State.SelectedRoadPoint = Vide.source(DEFAULT_VALUES.SelectedRoadPoint):: Vide.s
 State.SelectedRoadVector2Direction = Vide.source(DEFAULT_VALUES.SelectedRoadVector2Direction):: Vide.source<Vector2?>
 State.SimulatedRoadPoint = Vide.source(DEFAULT_VALUES.SimulatedRoadPoint):: Vide.source<BasePart?>
 
-function State.Effect(func: () -> ())
+type VideDerive = (callback: () -> (any)) -> (() -> (any))
+type VideEffect = (callback: () -> ()) -> ()
+
+--[[
+    Instantiates a stable scope via `Vide.root()` inside, exposing reactive scopes `Vide.effect()` and `Vide.derive()`. Intended to be called once only per script.
+]]
+function State.ScopeState(func: (effect: VideEffect, derive: VideDerive) -> ())
     Vide.root(function()
-        Vide.effect(func)
+        -- necessary for these reactive scopes to acknowledge that theyre inside a stable scope
+        func(Vide.effect, Vide.derive)
     end)
 end
 
+--[[
+    Resets the states into their `DEFAULT_VALUES`.
+]]
 function State.ResetStates()
     State.IsInBuildMenu(DEFAULT_VALUES.IsInBuildMenu)
     State.IsPromptedSelection(DEFAULT_VALUES.IsPromptedSelection)
@@ -43,12 +52,12 @@ end
 ]]
 function State.GetStates()
     return {
-        isInBuildMenuState = State.IsInBuildMenu;
-		isPromptedSelectionState = State.IsPromptedSelection;
-		currentRoadTypeState = State.CurrentRoadType;
-		selectedRoadPointState = State.SelectedRoadPoint;
+        isInBuildMenu = State.IsInBuildMenu;
+		isPromptedSelection = State.IsPromptedSelection;
+		currentRoadType = State.CurrentRoadType;
+		selectedRoadPoint = State.SelectedRoadPoint;
         selectedRoadVector2Direction = State.SelectedRoadVector2Direction;
-		simulatedRoadPointState = State.SimulatedRoadPoint;
+		simulatedRoadPoint = State.SimulatedRoadPoint;
     }
 end
 
@@ -57,12 +66,12 @@ end
 ]]
 function State.CaptureStates()
     return {
-        isInBuildMenuState = State.IsInBuildMenu():: boolean;
-		isPromptedSelectionState = State.IsPromptedSelection():: boolean;
-		currentRoadTypeState = State.CurrentRoadType():: string?;
-		selectedRoadPointState = State.SelectedRoadPoint():: BasePart?;
+        isInBuildMenu = State.IsInBuildMenu():: boolean;
+		isPromptedSelection = State.IsPromptedSelection():: boolean;
+		currentRoadType = State.CurrentRoadType():: string?;
+		selectedRoadPoint = State.SelectedRoadPoint():: BasePart?;
         selectedRoadVector2Direction = State.SelectedRoadVector2Direction():: Vector2?;
-		simulatedRoadPointState = State.SimulatedRoadPoint():: BasePart?;
+		simulatedRoadPoint = State.SimulatedRoadPoint():: BasePart?;
     }
 end
 

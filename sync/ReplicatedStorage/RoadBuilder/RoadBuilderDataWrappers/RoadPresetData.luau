@@ -1,4 +1,4 @@
-export type type = {
+export type RoadPresetData = {
 	Name: string;
 	RoadType: string;
 	Assets: {
