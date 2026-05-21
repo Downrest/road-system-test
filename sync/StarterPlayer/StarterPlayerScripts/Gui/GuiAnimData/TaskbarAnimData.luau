@@ -11,6 +11,10 @@ return {
     taskbarGuiFrame = AnimData(
         {
             Visible = true;
+            Position = UDim2.fromScale(
+                TASKBAR_BAKED_POSITION.X.Scale,
+                TASKBAR_BAKED_POSITION.Y.Scale
+            );
         },
         AnimTweenData(
             TweenInfo.new(.5),

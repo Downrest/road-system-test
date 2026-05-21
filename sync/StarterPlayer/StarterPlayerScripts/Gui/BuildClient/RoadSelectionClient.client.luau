@@ -6,6 +6,7 @@ local BuildAnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData
 local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
+local GuiAnimations = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAnimations)
 local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
 local RoadBuilderState = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderState)
 
@@ -58,26 +59,18 @@ local function init()
         end)
 	end
 
-    PropertiesUtils.ApplyProperties(roadSelection, ROAD_SELECTION_ANIM_DATA.initProperties)
+    GuiAnimations.Init(roadSelection, ROAD_SELECTION_ANIM_DATA)
 end
 
 init()
 
 FocusSignals.BuildInterface.OnFocus(roadSelection, function()
     warn("roadselection focused")
-    TweenService:Create(
-        roadSelection, 
-        ROAD_SELECTION_ANIM_DATA.focusedTweenData.tweenInfo, 
-        ROAD_SELECTION_ANIM_DATA.focusedTweenData.tweenProperties
-    ):Play()
+    GuiAnimations.EnterTween(roadSelection, ROAD_SELECTION_ANIM_DATA)
 end)
 
 FocusSignals.BuildInterface.OnDefocus(roadSelection, function()
     warn("roadselection defocused")
     
-    TweenService:Create(
-        roadSelection, 
-        ROAD_SELECTION_ANIM_DATA.defocusedTweenData.tweenInfo, 
-        ROAD_SELECTION_ANIM_DATA.defocusedTweenData.tweenProperties
-    ):Play()
+    GuiAnimations.ExitTween(roadSelection, ROAD_SELECTION_ANIM_DATA)
 end)

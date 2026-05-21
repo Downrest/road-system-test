@@ -19,8 +19,10 @@ local RENDER_THROTTLE_PER_ROAD_DISTANCE = {
 	throttleSeconds = .05;
 	roadDistance = 600;
 }
+local BUILD_YIELD_BEFORE_RESIMULATION_RESET = .25
 
 local states = RoadBuilderState.GetStates()
+local renderThrottle = 0
 
 local currentMouseCast: RaycastResult
 
@@ -37,6 +39,8 @@ InputManager.OnPress:Connect(function()
 	then
 		return
 	end
+
+	renderThrottle = 0
 
 	-- enable selection state, pauses resimulation of clientside roads (sent to the server)
 	states.isPromptedSelection(true)
@@ -76,15 +80,15 @@ InputManager.OnPress:Connect(function()
 
 		-- updated selectedroadpoint
 		states.selectedRoadPoint(capturedStates.simulatedRoadPoint)
-
 		destructor()
+
+		task.wait(BUILD_YIELD_BEFORE_RESIMULATION_RESET)
 		states.isPromptedSelection(false)
 	end)
 	-- when clicking the "undo button"
 	undoTriggeredSignal:Once(function()
 		-- reset selectedroadpoint
 		states.selectedRoadPoint(nil)
-
 		destructor()
 		states.isPromptedSelection(false)
 	end)
@@ -104,11 +108,11 @@ RoadBuilderState.ScopeState(function(effect)
 	end)
 end)
 
+-- whenever a new road is built on the server, this is fired back to the client for road visualization "correction"
 RoadBuilderEvents.CreateRoadRequest.OnClientEvent:Connect(function(boolean, direction)
 	states.selectedRoadVector2Direction(direction)
 end)
 
-local renderThrottle = 0
 RunService.RenderStepped:Connect(function()
 	if renderThrottle > 0 then
 		renderThrottle -= task.wait()
@@ -129,7 +133,7 @@ RunService.RenderStepped:Connect(function()
 		-- clear current visualization data
 		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
 
-		-- dont create new visualization no raycastresult from mouse
+		-- dont create new visualization if no raycastresult from mouse
 		currentMouseCast = MouseUtils.GetMouseCast()
 		if not currentMouseCast then
 			return

@@ -6,6 +6,7 @@ local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local TaskbarAnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData.TaskbarAnimData)
 local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAssetGetter)
 local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
+local GuiAnimations = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAnimations)
 
 local taskbarGui = GuiAssetGetter.TaskbarGui.gui
 local taskbarGuiFrame = GuiAssetGetter.TaskbarGui.guiFrame
@@ -16,7 +17,7 @@ local buildButton = GuiAssetGetter.TaskbarGui.buildButton
 local TASKBAR_GUI_ANIM_DATA = TaskbarAnimData.taskbarGuiFrame
 
 local function init()
-    PropertiesUtils.ApplyProperties(taskbarGuiFrame, TASKBAR_GUI_ANIM_DATA.initProperties)
+    GuiAnimations.Init(taskbarGuiFrame, TASKBAR_GUI_ANIM_DATA)
 
     buildButton.MouseButton1Down:Connect(function()
         FocusSignals.MainInterface.FocusGuis(GuiAssetGetter.BuildGui.gui).DefocusAllGuisExcept()
@@ -27,18 +28,10 @@ init()
 
 FocusSignals.MainInterface.OnFocus(taskbarGui, function()
 	warn("taskbar focused")
-    TweenService:Create(
-        taskbarGuiFrame, 
-        TASKBAR_GUI_ANIM_DATA.focusedTweenData.tweenInfo, 
-        TASKBAR_GUI_ANIM_DATA.focusedTweenData.tweenProperties
-    ):Play()
+    GuiAnimations.EnterTween(taskbarGuiFrame, TASKBAR_GUI_ANIM_DATA)
 end)
 
 FocusSignals.MainInterface.OnDefocus(taskbarGui, function()
 	warn("taskbar defocused")
-    TweenService:Create(
-        taskbarGuiFrame, 
-        TASKBAR_GUI_ANIM_DATA.defocusedTweenData.tweenInfo, 
-        TASKBAR_GUI_ANIM_DATA.defocusedTweenData.tweenProperties
-    ):Play()
+    GuiAnimations.ExitTween(taskbarGuiFrame, TASKBAR_GUI_ANIM_DATA)
 end)
