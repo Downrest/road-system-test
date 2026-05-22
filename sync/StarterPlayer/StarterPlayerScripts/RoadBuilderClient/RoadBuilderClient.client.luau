@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
+local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
 local RoadPointCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadPointCache)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
@@ -14,7 +15,6 @@ local RoadBuilderVisualizer = require(StarterPlayer.StarterPlayerScripts.RoadBui
 
 --// CONFIGURATION
 
-local DEFAULT_ROAD_POINT_AXIS = Vector2.xAxis
 local RENDER_THROTTLE_PER_ROAD_DISTANCE = {
 	throttleSeconds = .05;
 	roadDistance = 600;
@@ -78,7 +78,7 @@ InputManager.OnPress:Connect(function()
 					RoadVariantEnums.RoadPoint,
 					PointVector2Data(capturedStates.simulatedRoadPoint.Position)
 				)
-				states.selectedRoadVector2Direction(DEFAULT_ROAD_POINT_AXIS)
+				states.selectedRoadVector2Direction(RoadBuilderCreation.DEFAULT_ROAD_POINT_AXIS)
 			end
 		end
 

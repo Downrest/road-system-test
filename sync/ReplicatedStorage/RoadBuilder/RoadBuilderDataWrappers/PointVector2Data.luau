@@ -2,9 +2,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 
-local DEFAULT_VECTOR2_DIRECTION = Vector2.xAxis
-
 export type PointVector2Data = {
+	position: Vector2,
+	direction: Vector2?,
+	yLevel: number
+}
+export type PointVector2DataEnsuredDir = {
 	position: Vector2,
 	direction: Vector2,
 	yLevel: number
@@ -30,8 +33,7 @@ return function(
 				isdirectionVector3 
 					and VectorUtils.Vector2FromVector3(direction)
 					or direction
-			)
-			or DEFAULT_VECTOR2_DIRECTION;
+			);
 		yLevel = yLevel 
 			or (
 				isPositionVector3 
