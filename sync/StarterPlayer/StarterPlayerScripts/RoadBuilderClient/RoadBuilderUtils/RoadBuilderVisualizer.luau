@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 
+local GuiDragUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.GuiDragUtils)
 local PlayerUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.PlayerUtils)
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
@@ -92,15 +93,16 @@ end
     The created selection prompt is also indexed into `Visualizer.selectionDataContainer`.
 ]]
 function Visualizer.AddSelectionPrompt(adornee: BasePart): (
-    Instance, Signal.Signal, Signal.Signal, DestructorFunction
+    Instance, Signal.Signal, Signal.Signal, GuiDragUtils.IsDraggingSignal, DestructorFunction
 )
     
 	local selectionGuiClone = SELECTION_GUI_ASSET:Clone()
     selectionGuiClone.Parent = PlayerUtils.playerGui
     selectionGuiClone.Adornee = adornee
 
-    local selectButton = selectionGuiClone.Select
-    local undoButton = selectionGuiClone.Undo
+    local confirmationFrame = selectionGuiClone.Confirmation
+    local selectButton = confirmationFrame.Select
+    local undoButton = confirmationFrame.Undo
 
     local selectTriggeredSignal = Signal.new()
     selectButton.MouseButton1Down:Connect(function()
@@ -112,10 +114,16 @@ function Visualizer.AddSelectionPrompt(adornee: BasePart): (
         undoTriggeredSignal:Fire()
     end)
 
+    local movementFrame = selectionGuiClone.Movement
+    local verticalHandle = movementFrame.VerticalHandle
+
+    local verticalGuiDrag, verticalGuiDragDestructor = GuiDragUtils.new(verticalHandle)
+
     local function destructor()
         selectionGuiClone:Destroy()
         selectTriggeredSignal:Destroy()
 		undoTriggeredSignal:Destroy()
+        verticalGuiDragDestructor()
 		Visualizer.selectionDataContainer[selectionGuiClone] = nil
     end
 
@@ -129,7 +137,7 @@ function Visualizer.AddSelectionPrompt(adornee: BasePart): (
         }
     )
 
-    return selectionGuiClone, selectTriggeredSignal, undoTriggeredSignal, destructor
+    return selectionGuiClone, selectTriggeredSignal, undoTriggeredSignal, verticalGuiDrag.IsDragging, destructor
 end
 
 --[[

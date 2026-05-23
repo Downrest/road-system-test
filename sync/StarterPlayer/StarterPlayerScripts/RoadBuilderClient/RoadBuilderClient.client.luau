@@ -9,6 +9,7 @@ local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.
 local MouseUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.MouseUtils)
 local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
 local RoadBuilderSelectionValidator = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderSelectionValidator)
+local Janitor = require(ReplicatedStorage.SharedPackages.Janitor)
 local InputManager = require(StarterPlayer.StarterPlayerScripts.Inputs.InputManager)
 local RoadBuilderState = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderState)
 local RoadBuilderVisualizer = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderUtils.RoadBuilderVisualizer)
@@ -47,10 +48,34 @@ InputManager.OnPress:Connect(function()
 
 	-- selection prompt gui (while clearing the previous prompt guis)
 	RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
-	local _, selectTriggeredSignal, undoTriggeredSignal, destructor = RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPoint)
+	local _, 
+		selectTriggeredSignal, 
+		undoTriggeredSignal, 
+		verticalMovementSignal, 
+		visualizerDestructor 
+	= RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPoint)
+
+	local onPressJanitor = Janitor.new()
+
+	local function onPressDestructor()
+		onPressJanitor:Destroy()
+		visualizerDestructor()
+	end
+
+	--[[
+		MOVEMENT SIGNALS
+	]]
+
+	onPressJanitor:Add(verticalMovementSignal:Connect(function(delta)
+		warn(delta)
+	end))
+
+	--[[
+		CONFIRMATION SIGNALS
+	]]
 
 	-- when clicking the "select button"
-	selectTriggeredSignal:Once(function()
+	onPressJanitor:Add(selectTriggeredSignal:Once(function()
 		--[[
 			road extension creation with the newly updated direction state from roadpoint selection
 			after each request, the direction state is again reupdated via `CreateRoadRequest.OnClientEvent`
@@ -84,16 +109,17 @@ InputManager.OnPress:Connect(function()
 
 		-- updated selectedroadpoint
 		states.selectedRoadPoint(capturedStates.simulatedRoadPoint)
-		destructor()
+		onPressDestructor()
 		states.isPromptedSelection(false)
-	end)
+	end))
+
 	-- when clicking the "undo button"
-	undoTriggeredSignal:Once(function()
+	onPressJanitor:Add(undoTriggeredSignal:Once(function()
 		-- reset selectedroadpoint
 		states.selectedRoadPoint(nil)
-		destructor()
+		onPressDestructor()
 		states.isPromptedSelection(false)
-	end)
+	end))
 end)
 
 RoadBuilderState.ScopeState(function(effect)
@@ -176,37 +202,5 @@ RunService.RenderStepped:Connect(function()
 		end
 
 		states.simulatedRoadPoint(simulatedInstance)
-		--TODO this can be shorter!
-		-- if isCastInstanceValidSelection then
-		-- 	local mouseCastInstance = currentMouseCast.Instance
-
-		-- 	states.simulatedRoadPoint(mouseCastInstance)
-		-- 	RoadBuilderVisualizer.AttachRoadPointHighlight(mouseCastInstance)
-		-- else
-		-- 	local simulatedInstance: BasePart
-			
-		-- 	if capturedStates.selectedRoadPoint then
-		-- 		local selectedRoadToMouseDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
-		-- 		renderThrottle = selectedRoadToMouseDistance * (RENDER_THROTTLE_PER_ROAD_DISTANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_DISTANCE.roadDistance)
-
-		-- 		simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
-		-- 			capturedStates.currentRoadType,
-		-- 			PointVector2Data(
-		-- 				capturedStates.selectedRoadPoint.Position, 
-		-- 				states.selectedRoadVector2Direction()
-		-- 			),
-		-- 			PointVector2Data(castPosition)
-		-- 		)
-		-- 	else
-		-- 		simulatedInstance = RoadBuilderVisualizer.SimulateRoadPoint(
-		-- 			capturedStates.currentRoadType,
-		-- 			PointVector2Data(castPosition)
-		-- 		)
-
-		-- 		RoadBuilderVisualizer.AttachRoadPointHighlight(simulatedInstance)
-		-- 	end
-
-		-- 	states.simulatedRoadPoint(simulatedInstance)
-		-- end
 	end
 end)

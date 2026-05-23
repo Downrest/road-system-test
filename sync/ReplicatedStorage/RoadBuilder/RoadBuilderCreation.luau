@@ -255,9 +255,14 @@ local function createRoadExtension(
 ): (BasePart, BasePart, Vector2?)
 	-- default creation
 	if createType == CreateTypeEnums.Default then
+		local originRoadPoint = RoadBuilderCache.GetRoadInstanceFromVector3(
+			VectorUtils.Vector3FromVector2AndY(originData.position, originData.yLevel)
+		)
+		local originRoadPointCache = RoadBuilderCache.GetRoadPointCache(originRoadPoint)
 		local goalRoadPoint = RoadBuilderCache.GetRoadInstanceFromVector3(
 			VectorUtils.Vector3FromVector2AndY(goalData.position, goalData.yLevel)
 		)
+		local goalRoadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint)
 
 		local newRoad = createRoad(
 			roadAsset, 
@@ -268,11 +273,17 @@ local function createRoadExtension(
 			goalData
 		)
 
+		local returnedRoadPoint: BasePart
+		local returnedRoad: BasePart
+		local returnedVector2Direction: Vector2
+
 		-- if already cached, do not override roadpoint cache
 		if goalRoadPoint then
 			local goalRoadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint)
 
-			return goalRoadPoint, newRoad, goalRoadPointCache.vector2Direction
+			returnedRoadPoint = goalRoadPoint
+			returnedRoad = newRoad
+			returnedVector2Direction = goalRoadPointCache.vector2Direction
 
 		-- if not yet, update roadpoint cache with new direction
 		else
@@ -290,8 +301,21 @@ local function createRoadExtension(
 			).Unit
 			RoadBuilderCache.RoadPointCacheList[newRoadPoint].vector2Direction = newRoadToGoalDirection
 
-			return newRoadPoint, newRoad, newRoadToGoalDirection
+			returnedRoadPoint = newRoadPoint
+			returnedRoad = newRoad
+			returnedVector2Direction = newRoadToGoalDirection
 		end
+
+		--TODO INSERT `returnedRoad` to dependentRoadInstances of ORIGIN ROAD POINT AND GOAL ROAD POINT
+
+		if originRoadPointCache then
+			table.insert(RoadBuilderCache.RoadPointCacheList[originRoadPoint].dependentRoads, returnedRoad)
+		end
+		if goalRoadPointCache then
+			table.insert(RoadBuilderCache.RoadPointCacheList[goalRoadPoint].dependentRoads, returnedRoad)
+		end
+		
+		return returnedRoadPoint, returnedRoad, returnedVector2Direction
 
 	-- visualize (no care about caching here, just make road extensions)
 	else
