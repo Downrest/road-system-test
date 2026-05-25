@@ -253,13 +253,16 @@ function Visualizer.SimulateRoadExtension(
     local dependentRoadInstances = extensionRoadOutput.dependentRoadInstances
     table.insert(dependentRoadInstances.roadPoints, originRoadPointOutput.endRoadPointInstance) -- extra line to insert originRoadPoint
 
+    local allRoadPoints = table.move(dependentRoadInstances.roadPoints, 1, #dependentRoadInstances.roadPoints, 2, {endRoadPointInstance})
+    local allRoadPointsAmount = #allRoadPoints
+
     --[[
         add highlights from the very goal till the origin (prioritizing closest to player)
         highlights are only limited to `ROAD_POINT_HIGHLIGHT_LIMIT`
     ]]
-    for i = #dependentRoadInstances.roadPoints, 1, -1 do
-        local roadPoint = dependentRoadInstances.roadPoints[i]
-        local highlight = cachedRoadPointHighlights[(#dependentRoadInstances.roadPoints+1) - i]
+    for i = allRoadPointsAmount, 1, -1 do
+        local roadPoint = allRoadPoints[i]
+        local highlight = cachedRoadPointHighlights[(allRoadPointsAmount+1) - i]
 
         if highlight then
             highlight.Adornee = roadPoint

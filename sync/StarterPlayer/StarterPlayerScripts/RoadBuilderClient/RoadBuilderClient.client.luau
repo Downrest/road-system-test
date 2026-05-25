@@ -156,6 +156,7 @@ RoadBuilderEvents.CreateRoadRequest.OnClientEvent:Connect(function(boolean, dire
 end)
 
 RunService.RenderStepped:Connect(function()
+	-- render throttling the visualization code itself (depending on how far the road is from the player)
 	if renderThrottle > 0 then
 		renderThrottle -= task.wait()
 		return
@@ -187,6 +188,7 @@ RunService.RenderStepped:Connect(function()
 		local simulatedInstance: BasePart
 
 		if capturedStates.selectedRoadPoint then
+			-- only apply `renderThrottle` for extension roads
 			local selectedRoadToMouseverticalDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
 			renderThrottle = selectedRoadToMouseverticalDistance * (RENDER_THROTTLE_PER_ROAD_verticalDistANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_verticalDistANCE.roadverticalDistance)
 

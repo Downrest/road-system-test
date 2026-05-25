@@ -26,7 +26,6 @@ local function generateInputSignal(
 	ContextActionService:BindActionAtPriority(
 		bindName, 
 		function(_, inputState, inputObject)
-			warn(inputState)
 			if inputState == Enum.UserInputState.Begin then
 				onPressSignal:Fire(inputObject.KeyCode or inputObject.UserInputType)
 			elseif inputState == Enum.UserInputState.End then
