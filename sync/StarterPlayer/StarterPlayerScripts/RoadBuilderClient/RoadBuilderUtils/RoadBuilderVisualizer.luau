@@ -218,13 +218,6 @@ function Visualizer.UnattachRoadPointHighlight()
     cachedRoadPointHighlights[1].Adornee = nil
 end
 
--- function Visualizer.UnattachAllRoadPointHighlights()
-
---     for _, highlight in cachedRoadPointHighlights do
---         highlight.Adornee = nil
---     end
--- end
-
 --[[
     Creates a (simulated) road extension, returning a destructor function.
 
