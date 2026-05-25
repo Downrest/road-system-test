@@ -87,13 +87,28 @@ function Visualizer.ClearVisualizationData(
     end
 end
 
+type SelectTriggeredSignal = Signal.Signal
+type UndoTriggeredSignal = Signal.Signal
+type VerticalDragContinueSignal = Signal.Signal
+type VerticalDragStartedSignal = Signal.Signal
+type VerticalDragEndedSignal = Signal.Signal
+
+type SelectionPromptSignals = {
+    selectTriggered: SelectTriggeredSignal;
+    undoTriggered: UndoTriggeredSignal;
+
+    verticalDragContinue: VerticalDragContinueSignal;
+    verticalDragStarted: VerticalDragStartedSignal;
+    verticalDragEnded: VerticalDragEndedSignal;
+}
+
 --[[
     Creates a selection prompt parented to `adornee` parameter, returning 1) select-triggered signal, 2) undo-triggered signal, and 3) destructor function.
 
     The created selection prompt is also indexed into `Visualizer.selectionDataContainer`.
 ]]
 function Visualizer.AddSelectionPrompt(adornee: BasePart): (
-    Instance, Signal.Signal, Signal.Signal, GuiDragUtils.IsDraggingSignal, DestructorFunction
+    Instance, SelectionPromptSignals, DestructorFunction
 )
     
 	local selectionGuiClone = SELECTION_GUI_ASSET:Clone()
@@ -118,6 +133,9 @@ function Visualizer.AddSelectionPrompt(adornee: BasePart): (
     local verticalHandle = movementFrame.VerticalHandle
 
     local verticalGuiDrag, verticalGuiDragDestructor = GuiDragUtils.new(verticalHandle)
+    local verticalDragContinueSignal = verticalGuiDrag.DragContinueSignal
+    local verticalDragStartedSignal = verticalGuiDrag.DragStartedSignal
+    local verticalDragEndedSignal = verticalGuiDrag.DragEndedSignal
 
     local function destructor()
         selectionGuiClone:Destroy()
@@ -137,7 +155,17 @@ function Visualizer.AddSelectionPrompt(adornee: BasePart): (
         }
     )
 
-    return selectionGuiClone, selectTriggeredSignal, undoTriggeredSignal, verticalGuiDrag.IsDragging, destructor
+    return 
+        selectionGuiClone, 
+        {
+            selectTriggered = selectTriggeredSignal;
+            undoTriggered = undoTriggeredSignal;
+
+            verticalDragContinue = verticalDragContinueSignal;
+            verticalDragStarted = verticalDragStartedSignal;
+            verticalDragEnded = verticalDragEndedSignal;
+        },
+        destructor
 end
 
 --[[

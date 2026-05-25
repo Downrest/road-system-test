@@ -42,24 +42,24 @@ end
 ]]
 
 local previousMousePosition = UserInputService:GetMouseLocation()
-local currentMouseDelta = 0
+local currentMouseDeltaVector2 = Vector2.zero
 
-export type MouseDeltaChangedSignal = Signal.Signal<(delta: number) -> ()>
+export type MouseDeltaChangedSignal = Signal.Signal<(deltaVector2: Vector2) -> ()>
 MouseUtils.MouseDeltaChanged = Signal.new():: MouseDeltaChangedSignal
 
 RunService.RenderStepped:Connect(function()
     local currentMousePosition = UserInputService:GetMouseLocation()
-    currentMouseDelta = (previousMousePosition - currentMousePosition).Magnitude
+    currentMouseDeltaVector2 = (previousMousePosition - currentMousePosition)
     previousMousePosition = currentMousePosition
     
-    MouseUtils.MouseDeltaChanged:Fire()
+    MouseUtils.MouseDeltaChanged:Fire(currentMouseDeltaVector2.X, currentMouseDeltaVector2.Y)
 end)
 
 --[[
     Returns mouse position data in pixels.
 ]]
-function MouseUtils.GetMouseDelta()
-    return currentMouseDelta
+function MouseUtils.GetMouseDelta(): Vector2
+    return currentMouseDeltaVector2
 end
 
 return MouseUtils

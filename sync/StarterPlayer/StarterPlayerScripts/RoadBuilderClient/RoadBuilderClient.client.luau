@@ -16,12 +16,17 @@ local RoadBuilderVisualizer = require(StarterPlayer.StarterPlayerScripts.RoadBui
 
 --// CONFIGURATION
 
-local RENDER_THROTTLE_PER_ROAD_DISTANCE = {
+local STUDS_PER_VERTICAL_MOVEMENT_PIXELS = {
+	studs = 5;
+	pixels = 500;
+}
+local RENDER_THROTTLE_PER_ROAD_verticalDistANCE = {
 	throttleSeconds = .05;
-	roadDistance = 600;
+	roadverticalDistance = 600;
 }
 local BUILD_YIELD_BEFORE_RESIMULATION_RESET = .25
 
+local camera = workspace.CurrentCamera
 local states = RoadBuilderState.GetStates()
 local renderThrottle = 0
 
@@ -48,12 +53,7 @@ InputManager.OnPress:Connect(function()
 
 	-- selection prompt gui (while clearing the previous prompt guis)
 	RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
-	local _, 
-		selectTriggeredSignal, 
-		undoTriggeredSignal, 
-		verticalMovementSignal, 
-		visualizerDestructor 
-	= RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPoint)
+	local _, visualizerSignals, visualizerDestructor = RoadBuilderVisualizer.AddSelectionPrompt(capturedStates.simulatedRoadPoint)
 
 	local onPressJanitor = Janitor.new()
 
@@ -66,8 +66,22 @@ InputManager.OnPress:Connect(function()
 		MOVEMENT SIGNALS
 	]]
 
-	onPressJanitor:Add(verticalMovementSignal:Connect(function(delta)
-		warn(delta)
+	local verticalDist = (camera.CFrame.Position - capturedStates.simulatedRoadPoint.Position).Magnitude
+	local previousVerticalRay = MouseUtils.GetMouseRay()
+	local verticalDelta = 0
+
+	onPressJanitor:Add(visualizerSignals.verticalDragContinue:Connect(function()
+		verticalDist = (camera.CFrame.Position - capturedStates.simulatedRoadPoint.Position).Magnitude
+
+		local currentVerticalRay = MouseUtils.GetMouseRay()
+
+		verticalDelta = ((currentVerticalRay.Direction.Unit * verticalDist).Y - (previousVerticalRay.Direction.Unit * verticalDist).Y)
+		capturedStates.simulatedRoadPoint.Position += Vector3.new(0, verticalDelta, 0)
+
+		previousVerticalRay = currentVerticalRay
+	end))
+	onPressJanitor:Add(visualizerSignals.verticalDragStarted:Connect(function()
+		previousVerticalRay = MouseUtils.GetMouseRay()
 	end))
 
 	--[[
@@ -75,7 +89,7 @@ InputManager.OnPress:Connect(function()
 	]]
 
 	-- when clicking the "select button"
-	onPressJanitor:Add(selectTriggeredSignal:Once(function()
+	onPressJanitor:Add(visualizerSignals.selectTriggered:Once(function()
 		--[[
 			road extension creation with the newly updated direction state from roadpoint selection
 			after each request, the direction state is again reupdated via `CreateRoadRequest.OnClientEvent`
@@ -114,7 +128,7 @@ InputManager.OnPress:Connect(function()
 	end))
 
 	-- when clicking the "undo button"
-	onPressJanitor:Add(undoTriggeredSignal:Once(function()
+	onPressJanitor:Add(visualizerSignals.undoTriggered:Once(function()
 		-- reset selectedroadpoint
 		states.selectedRoadPoint(nil)
 		onPressDestructor()
@@ -173,8 +187,8 @@ RunService.RenderStepped:Connect(function()
 		local simulatedInstance: BasePart
 
 		if capturedStates.selectedRoadPoint then
-			local selectedRoadToMouseDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
-			renderThrottle = selectedRoadToMouseDistance * (RENDER_THROTTLE_PER_ROAD_DISTANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_DISTANCE.roadDistance)
+			local selectedRoadToMouseverticalDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
+			renderThrottle = selectedRoadToMouseverticalDistance * (RENDER_THROTTLE_PER_ROAD_verticalDistANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_verticalDistANCE.roadverticalDistance)
 
 			simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
 				capturedStates.currentRoadType,
