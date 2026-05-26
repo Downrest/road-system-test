@@ -38,6 +38,7 @@ end
 
 local function roadButtonTrigger(roadButtonInstances: RoadButtonInstances, roadPreset)
     RoadBuilderState.CurrentRoadType(roadPreset.RoadType)
+    warn(RoadBuilderState.CurrentRoadType())
     FocusSignals.BuildInterface.FocusGuis(buildMenu).DefocusAllGuisExcept()
 end
 
@@ -54,7 +55,9 @@ local function init()
         roadButtonUpdate(roadButtonInstances, roadPreset)
         roadButtonClone.Parent = roadSelection.RoadList
 
-        roadButtonClone.MouseButton1Click:Connect(function()
+        warn("gajdwh d")
+        roadButtonClone.MouseButton1Down:Connect(function()
+            warn("hello????")
             roadButtonTrigger(roadButtonInstances, roadPreset)
         end)
 	end

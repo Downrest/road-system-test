@@ -19,8 +19,10 @@ local camera = workspace.CurrentCamera
 
 local SELECTION_GUI_ASSET = RoadBuilderAssetGetter.guis.SelectionGui
 
+--// CONFIGURATION
+
 --[[
-    VISUALIZATION DATA
+    DATA
 ]]
 
 type DestructorFunction = () -> ()
@@ -35,13 +37,7 @@ type SimulatedRoadData = VisualizationData & {
     endRoadPointVector2Data: PointVector2Data.PointVector2Data
 }
 
---[[
-    VISUALIZATION CONTAINER
-]]
-
 type VisualizationContainer<Data> = {[Instance]: Data}
-
---// PUBLIC
 
 Visualizer.selectionDataContainer = {}:: VisualizationContainer<SelectionAssetData>
 Visualizer.simulatedRoadContainer = {}:: VisualizationContainer<SimulatedRoadData>
@@ -175,7 +171,8 @@ end
 ]]
 function Visualizer.SimulateRoadPoint(
     roadType: string,
-    originVector2Data: PointVector2Data.PointVector2Data
+    originVector2Data: PointVector2Data.PointVector2Data,
+    avoidCaching: boolean?
 ): (Instance, DestructorFunction)
     local originRoadOutput = RoadBuilderCreation.CreateOriginRoad(
         RoadConfigData(
@@ -193,13 +190,15 @@ function Visualizer.SimulateRoadPoint(
 		Visualizer.simulatedRoadContainer[originRoadPointInstance] = nil
     end
 
-    indexInstancesWithData(
-        Visualizer.simulatedRoadContainer,
-        {originRoadPointInstance},
-        {
-            destructor = destructor;
-        }
-    )
+    if not avoidCaching then
+        indexInstancesWithData(
+            Visualizer.simulatedRoadContainer,
+            {originRoadPointInstance},
+            {
+                destructor = destructor;
+            }
+        )
+    end
 
     return originRoadPointInstance, destructor
 end
@@ -226,7 +225,8 @@ end
 function Visualizer.SimulateRoadExtension(
     roadType: string,
     originVector2Data: PointVector2Data.PointVector2Data,
-    goalVector2Data: PointVector2Data.PointVector2Data
+    goalVector2Data: PointVector2Data.PointVector2Data,
+    avoidCaching: boolean?
 ): (BasePart, PointVector2Data.PointVector2Data, {BasePart}, DestructorFunction)
     local originRoadPointOutput = RoadBuilderCreation.CreateOriginRoad(
         RoadConfigData(
@@ -282,14 +282,16 @@ function Visualizer.SimulateRoadExtension(
 		Visualizer.simulatedRoadContainer[endRoadPointInstance] = nil
     end
 
-    indexInstancesWithData(
-        Visualizer.simulatedRoadContainer,
-        {endRoadPointInstance},
-        {
-            endRoadPointVector2Data = endRoadPointVector2Data;
-			destructor = destructor;
-        }
-    )
+    if not avoidCaching then
+        indexInstancesWithData(
+            Visualizer.simulatedRoadContainer,
+            {endRoadPointInstance},
+            {
+                endRoadPointVector2Data = endRoadPointVector2Data;
+                destructor = destructor;
+            }
+        )
+    end
 
     return endRoadPointInstance, endRoadPointVector2Data, dependentRoadInstances, destructor
 end

@@ -251,7 +251,8 @@ local function createRoadExtension(
 	roadParent: Instance,
 
 	originData: PointVector2Data.PointVector2Data,
-	goalData: PointVector2Data.PointVector2Data
+	goalData: PointVector2Data.PointVector2Data,
+	avoidEndRoadPoint: boolean? 
 ): (BasePart, BasePart, Vector2?)
 	-- default creation
 	if createType == CreateTypeEnums.Default then
@@ -279,7 +280,7 @@ local function createRoadExtension(
 
 		-- if already cached, do not override roadpoint cache
 		if goalRoadPoint then
-			local goalRoadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint)
+			-- local goalRoadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint)
 
 			returnedRoadPoint = goalRoadPoint
 			returnedRoad = newRoad
@@ -326,6 +327,24 @@ local function createRoadExtension(
 			roadParent,
 			goalData
 		)
+		-- local newRoadPoint
+
+		-- --[[
+		-- 	by default, creates an endroadpoint 
+
+		-- 	however, in certain cases (like client visualization)
+		-- 	we want to not redraw/recreate the endroadpoint every frame
+		-- 	in order to sustain external effects such as gui
+		-- ]]
+		-- if not avoidEndRoadPoint then
+		-- 	newRoadPoint = createRoadPoint(
+		-- 		roadPointAsset,
+		-- 		roadType,
+		-- 		createType,
+		-- 		roadParent,
+		-- 		goalData
+		-- 	)
+		-- end
 		local newRoad = createRoad(
 			roadAsset, 
 			roadType,
@@ -519,7 +538,8 @@ function Creation.CreateExtensionRoad(
 		roadParent,
 
 		PointVector2Data(previousRoadPointPosition, nil, originYLevel),
-		PointVector2Data(goalPosition, nil, goalYLevel)
+		PointVector2Data(goalPosition, nil, goalYLevel),
+		(createType == CreateTypeEnums.Visualize)
 	)
 	table.insert(dependentRoads.roads, goalRoad)
 	dependentRoads.n += 1

@@ -1,3 +1,4 @@
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
@@ -31,6 +32,17 @@ local states = RoadBuilderState.GetStates()
 local renderThrottle = 0
 
 local currentMouseCast: RaycastResult
+
+local function newRoadPointOnMouse(): (BasePart, () -> ())
+	local mouseCastPosition = MouseUtils.GetMouseCast().Position
+	local mouseRoadPoint, mouseRoadPointDestructor = RoadBuilderVisualizer.SimulateRoadPoint(
+		RoadBuilderState.CurrentRoadType(),
+		PointVector2Data(mouseCastPosition),
+		true -- we avoid caching because we want to handle its destruction ourselves
+	)
+
+	return mouseRoadPoint, mouseRoadPointDestructor
+end
 
 --[[
 	client merely sends requests to the server
@@ -123,6 +135,8 @@ InputManager.OnPress:Connect(function()
 
 		-- updated selectedroadpoint
 		states.selectedRoadPoint(capturedStates.simulatedRoadPoint)
+		local newSimulatedRoadPoint = newRoadPointOnMouse()
+		states.simulatedRoadPoint(newSimulatedRoadPoint)
 		onPressDestructor()
 		states.isPromptedSelection(false)
 	end))
@@ -138,11 +152,16 @@ end)
 
 RoadBuilderState.ScopeState(function(effect)
 	effect(function()
+		if states.isInBuildMenu() then
+			-- create the endroadpoint ONCE throughout the entire
+			local mouseRoadPoint, mouseRoadPointDestructor = newRoadPointOnMouse()
+			states.simulatedRoadPoint(mouseRoadPoint)
+
 		--[[
 			if state is exited (meaning player is no longer in build menu)
 			clear selected road data
 		]]
-		if not states.isInBuildMenu() then
+		else
 			RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
 			RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.selectionDataContainer)
 			RoadBuilderState.ResetStates()
@@ -173,7 +192,7 @@ RunService.RenderStepped:Connect(function()
 
 	-- else, continue with visualization rerender
 	else
-		-- clear current visualization data
+		-- clear current (cached) visualization data
 		RoadBuilderVisualizer.ClearVisualizationData(RoadBuilderVisualizer.simulatedRoadContainer)
 
 		-- dont create new visualization if no raycastresult from mouse
@@ -182,41 +201,58 @@ RunService.RenderStepped:Connect(function()
 			return
 		end
 		
-		local castPosition = currentMouseCast.Position
+		local mouseCastPosition = currentMouseCast.Position
 		local isCastInstanceValidSelection = RoadBuilderSelectionValidator.VerifyRoadPoint(currentMouseCast.Instance)
 
-		local simulatedInstance: BasePart
+		local endRoadPointPosition = (
+			isCastInstanceValidSelection 
+				and currentMouseCast.Instance.Position
+				or mouseCastPosition
+		)
+
+		states.simulatedRoadPoint().Position = endRoadPointPosition
 
 		if capturedStates.selectedRoadPoint then
-			-- only apply `renderThrottle` for extension roads
-			local selectedRoadToMouseverticalDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
+			local selectedRoadToMouseverticalDistance = (capturedStates.selectedRoadPoint.Position - mouseCastPosition).Magnitude
 			renderThrottle = selectedRoadToMouseverticalDistance * (RENDER_THROTTLE_PER_ROAD_verticalDistANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_verticalDistANCE.roadverticalDistance)
 
-			simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
+			RoadBuilderVisualizer.SimulateRoadExtension(
 				capturedStates.currentRoadType,
 				PointVector2Data(
 					capturedStates.selectedRoadPoint.Position, 
 					states.selectedRoadVector2Direction()
 				),
-				PointVector2Data(
-					isCastInstanceValidSelection 
-						and currentMouseCast.Instance.Position
-						or castPosition
-				)
+				PointVector2Data(endRoadPointPosition)
 			)
-		else
-			if isCastInstanceValidSelection then
-				simulatedInstance = currentMouseCast.Instance
-			else
-				simulatedInstance = RoadBuilderVisualizer.SimulateRoadPoint(
-					capturedStates.currentRoadType,
-					PointVector2Data(castPosition)
-				)
-			end
-
-			RoadBuilderVisualizer.AttachRoadPointHighlight(simulatedInstance)
 		end
+		-- if capturedStates.selectedRoadPoint then
+		-- 	-- only apply `renderThrottle` for extension roads
+		-- 	local selectedRoadToMouseverticalDistance = (capturedStates.selectedRoadPoint.Position - castPosition).Magnitude
+		-- 	renderThrottle = selectedRoadToMouseverticalDistance * (RENDER_THROTTLE_PER_ROAD_verticalDistANCE.throttleSeconds / RENDER_THROTTLE_PER_ROAD_verticalDistANCE.roadverticalDistance)
 
-		states.simulatedRoadPoint(simulatedInstance)
+		-- 	simulatedInstance = RoadBuilderVisualizer.SimulateRoadExtension(
+		-- 		capturedStates.currentRoadType,
+		-- 		PointVector2Data(
+		-- 			capturedStates.selectedRoadPoint.Position, 
+		-- 			states.selectedRoadVector2Direction()
+		-- 		),
+		-- 		PointVector2Data(
+		-- 			isCastInstanceValidSelection 
+		-- 				and currentMouseCast.Instance.Position
+		-- 				or castPosition
+		-- 		)
+		-- 	)
+		-- else
+		-- 	if isCastInstanceValidSelection then
+		-- 		simulatedInstance = currentMouseCast.Instance
+		-- 	else
+		-- 		simulatedInstance = RoadBuilderVisualizer.SimulateRoadPoint(
+		-- 			capturedStates.currentRoadType,
+		-- 			PointVector2Data(castPosition)
+		-- 		)
+		-- 	end
+
+		-- 	RoadBuilderVisualizer.AttachRoadPointHighlight(simulatedInstance)
+		-- end
 	end
 end)
