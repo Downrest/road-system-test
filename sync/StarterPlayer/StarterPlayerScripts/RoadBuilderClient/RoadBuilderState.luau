@@ -1,50 +1,149 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Vide = require(ReplicatedStorage.SharedPackages.Vide)
+local context = require(ReplicatedStorage.SharedPackages.Vide.context)
 
 local State = {}
 
 --// CONFIGURATION
 
-local DEFAULT_VALUES = {
+State.DEFAULT_VALUES = {
     IsInBuildMenu = false;
     IsPromptedSelection = false;
+    IsMovingSelection = {isMoving = false, isCustomPosition = false};
+    IsHoveringExistingRoadPoint = false;
+    IsVisualizing = false;
+
     CurrentRoadType = nil;
-    SelectedRoadPoint = nil;
-    SelectedRoadVector2Direction = nil;
-    SimulatedRoadPoint = nil;
+    CurrentGoalPoint = {
+        goalPoint = nil;
+        referenceInstance = nil;
+    };
+    CurrentSelectionPoint = {
+        selectionPoint = nil;
+        selectionDirection = nil;
+    };
 }
 
-State.IsInBuildMenu = Vide.source(DEFAULT_VALUES.IsInBuildMenu):: Vide.source<boolean>
-State.IsPromptedSelection = Vide.source(DEFAULT_VALUES.IsPromptedSelection):: Vide.source<boolean>
-State.CurrentRoadType = Vide.source(DEFAULT_VALUES.CurrentRoadType):: Vide.source<string?>
-State.SelectedRoadPoint = Vide.source(DEFAULT_VALUES.SelectedRoadPoint):: Vide.source<BasePart?>
-State.SelectedRoadVector2Direction = Vide.source(DEFAULT_VALUES.SelectedRoadVector2Direction):: Vide.source<Vector2?>
-State.SimulatedRoadPoint = Vide.source(DEFAULT_VALUES.SimulatedRoadPoint):: Vide.source<BasePart?>
+type IsInBuildMenu = boolean
+type IsPromptedSelection = boolean
+type IsMovingSelection = {isMoving: boolean, isCustomPosition: boolean}
+type IsHoveringExistingRoadPoint = boolean
+type IsVisualizing = boolean
+
+type CurrentRoadType = string?
+type CurrentGoalPoint = {goalPoint: BasePart?, referenceInstance: BasePart?}
+type CurrentSelectionPoint = {selectionPoint: BasePart?, selectionDirection: Vector2}
+
+type StateNames = 
+    "IsInBuildMenu"
+    | "IsPromptedSelection"
+    | "IsMovingSelection" 
+    | "IsHoveringExistingRoadPoint"
+    | "IsVisualizing"
+
+    | "CurrentRoadType"
+    | "CurrentGoalPoint"
+    | "CurrentSelectionPoint"
+
+State.IsInBuildMenu = Vide.source(State.DEFAULT_VALUES.IsInBuildMenu):: Vide.source<IsInBuildMenu>
+State.IsPromptedSelection = Vide.source(State.DEFAULT_VALUES.IsPromptedSelection):: Vide.source<IsPromptedSelection>
+State.IsMovingSelection = Vide.source(State.DEFAULT_VALUES.IsMovingSelection):: Vide.source<IsMovingSelection>
+State.IsHoveringExistingRoadPoint = Vide.source(State.DEFAULT_VALUES.IsHoveringExistingRoadPoint):: Vide.source<IsHoveringExistingRoadPoint>
+State.IsVisualizing = Vide.source(State.DEFAULT_VALUES.IsVisualizing):: Vide.source<IsVisualizing>
+
+State.CurrentRoadType = Vide.source(State.DEFAULT_VALUES.CurrentRoadType):: Vide.source<CurrentRoadType>
+State.CurrentGoalPoint = Vide.source(State.DEFAULT_VALUES.CurrentGoalPoint):: Vide.source<CurrentGoalPoint>
+State.CurrentSelectionPoint = Vide.source(State.DEFAULT_VALUES.CurrentSelectionPoint):: Vide.source<CurrentSelectionPoint>
 
 type VideDerive = (callback: () -> (any)) -> (() -> (any))
 type VideEffect = (callback: () -> ()) -> ()
 
+
+function State.SetMovingSelection(isMoving: boolean, isCustomPosition: boolean)
+    State.IsMovingSelection({
+        isMoving = isMoving;
+        isCustomPosition = isCustomPosition;
+    })
+end
+
+function State.SetCurrentGoalPoint(goalPoint: BasePart?)
+    local current = Vide.untrack(State.CurrentGoalPoint)
+
+    State.CurrentGoalPoint({
+        goalPoint = goalPoint;
+        referenceInstance = current.referenceInstance;
+    })
+end
+
+function State.SetCurrentGoalReference(referenceInstance: BasePart?)
+    local current = Vide.untrack(State.CurrentGoalPoint)
+
+    State.CurrentGoalPoint({
+        goalPoint = current.goalPoint;
+        referenceInstance = referenceInstance;
+    })
+end
+
+function State.SetCurrentSelectionPoint(selectionPoint: BasePart?)
+    local current = Vide.untrack(State.CurrentSelectionPoint)
+
+    State.CurrentSelectionPoint({
+        selectionPoint = selectionPoint;
+        selectionDirection = current.selectionDirection;
+    })
+end
+
+function State.SetCurrentSelectionDirection(selectionDirection: Vector2?)
+    local current = Vide.untrack(State.CurrentSelectionPoint)
+
+    State.CurrentSelectionPoint({
+        selectionPoint = current.selectionPoint;
+        selectionDirection = selectionDirection;
+    })
+end
+-- function State.SetCurrentSelectionPoint(selectionPoint: BasePart?, selectionDirection: Vector2?)
+--     State.CurrentSelectionPoint({
+--         selectionPoint = selectionPoint;
+--         selectionDirection = selectionDirection;
+--     })
+-- end
+
 --[[
     Instantiates a stable scope via `Vide.root()` inside, exposing reactive scopes `Vide.effect()` and `Vide.derive()`. Intended to be called once only per script.
 ]]
-function State.ScopeState(func: (effect: VideEffect, derive: VideDerive) -> ())
+function State.ScopeState(func: () -> ())
     Vide.root(function()
         -- necessary for these reactive scopes to acknowledge that theyre inside a stable scope
-        func(Vide.effect, Vide.derive)
+        func()
     end)
 end
 
 --[[
     Resets the states into their `DEFAULT_VALUES`.
 ]]
-function State.ResetStates()
-    State.IsInBuildMenu(DEFAULT_VALUES.IsInBuildMenu)
-    State.IsPromptedSelection(DEFAULT_VALUES.IsPromptedSelection)
-    State.CurrentRoadType(DEFAULT_VALUES.CurrentRoadType)
-    State.SelectedRoadPoint(DEFAULT_VALUES.SelectedRoadPoint)
-    State.SelectedRoadVector2Direction(DEFAULT_VALUES.SelectedRoadVector2Direction)
-    State.SimulatedRoadPoint(DEFAULT_VALUES.SimulatedRoadPoint)
+function State.ResetStates(...: StateNames)
+    if select("#", ...) > 0 then
+        for _, stateName in {...} do
+            local state: Vide.source<any> = State[stateName]
+            local defaultValue = State.DEFAULT_VALUES[stateName]
+
+            if state and defaultValue then
+                state(defaultValue)
+            end
+        end
+
+    else
+        State.IsInBuildMenu(State.DEFAULT_VALUES.IsInBuildMenu)
+        State.IsPromptedSelection(State.DEFAULT_VALUES.IsPromptedSelection)
+        State.IsMovingSelection(State.DEFAULT_VALUES.IsMovingSelection)
+        State.IsHoveringExistingRoadPoint(State.DEFAULT_VALUES.IsHoveringExistingRoadPoint)
+        State.IsVisualizing(State.DEFAULT_VALUES.IsVisualizing)
+    
+        State.CurrentRoadType(State.DEFAULT_VALUES.CurrentRoadType)
+        State.CurrentGoalPoint(State.DEFAULT_VALUES.CurrentGoalPoint)
+        State.CurrentSelectionPoint(State.DEFAULT_VALUES.CurrentSelectionPoint)
+    end
 end
 
 --[[
@@ -54,24 +153,31 @@ function State.GetStates()
     return {
         isInBuildMenu = State.IsInBuildMenu;
 		isPromptedSelection = State.IsPromptedSelection;
+        isMovingSelection = State.IsMovingSelection;
+        isHoveringExistingRoadPoint = State.IsHoveringExistingRoadPoint;
+        isVisualizing = State.IsVisualizing;
+
 		currentRoadType = State.CurrentRoadType;
-		selectedRoadPoint = State.SelectedRoadPoint;
-        selectedRoadVector2Direction = State.SelectedRoadVector2Direction;
-		simulatedRoadPoint = State.SimulatedRoadPoint;
+        currentGoalPoint = State.CurrentGoalPoint;
+        currentSelectionPoint = State.CurrentSelectionPoint;
     }
 end
 
 --[[
-    Returns a dictionary of each state value by the time this function was called, reducing boilerplate.
+    Returns a dictionary of each state value by the time this function was called, reducing boilerplate. To avoid unforeseen side-effects with tracking methods like `Vide.effect()`, captured states are untracked via `Vide.untrack()`.
 ]]
 function State.CaptureStates()
+    -- had to cast because typechecker isnt smart enough to infer
     return {
-        isInBuildMenu = State.IsInBuildMenu():: boolean;
-		isPromptedSelection = State.IsPromptedSelection():: boolean;
-		currentRoadType = State.CurrentRoadType():: string?;
-		selectedRoadPoint = State.SelectedRoadPoint():: BasePart?;
-        selectedRoadVector2Direction = State.SelectedRoadVector2Direction():: Vector2?;
-		simulatedRoadPoint = State.SimulatedRoadPoint():: BasePart?;
+        isInBuildMenu = Vide.untrack(State.IsInBuildMenu):: IsInBuildMenu;
+		isPromptedSelection = Vide.untrack(State.IsPromptedSelection):: IsPromptedSelection;
+        isMovingSelection = Vide.untrack(State.IsMovingSelection):: IsMovingSelection;
+        isHoveringExistingRoadPoint = Vide.untrack(State.IsMovingSelection):: IsMovingSelection;
+        isVisualizing = Vide.untrack(State.IsVisualizing):: IsVisualizing;
+
+		currentRoadType = Vide.untrack(State.CurrentRoadType):: CurrentRoadType;
+        currentGoalPoint = Vide.untrack(State.CurrentGoalPoint):: CurrentGoalPoint;
+        currentSelectionPoint = Vide.untrack(State.CurrentSelectionPoint):: CurrentSelectionPoint;
     }
 end
 

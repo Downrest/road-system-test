@@ -17,14 +17,12 @@ end
 init()
 
 FocusSignals.BuildInterface.OnFocus(buildMenu, function()
-    warn("roadselection focused")
     RoadBuilderState.IsInBuildMenu(true)
     
     GuiAnimations.EnterTween(buildMenu, BUILD_MENU_ANIM_DATA)
 end)
 
 FocusSignals.BuildInterface.OnDefocus(buildMenu, function()
-	warn("roadselection defocused")
 	RoadBuilderState.IsInBuildMenu(false)
 	
     GuiAnimations.ExitTween(buildMenu, BUILD_MENU_ANIM_DATA)

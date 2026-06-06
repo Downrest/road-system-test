@@ -1,17 +1,20 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RunService = game:GetService("RunService")
+local StarterPlayer = game:GetService("StarterPlayer")
 local UserInputService = game:GetService("UserInputService")
 
+local PlayerUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.PlayerUtils)
 local Signal = require(ReplicatedStorage.SharedPackages.Signal)
 local camera = workspace.CurrentCamera
 
 local MouseUtils = {}
 
---[[
-    RAYCASTING
-]]
+--// CONFIGURATION
 
+local MOUSE_RAY_PARAMS = RaycastParams.new()
+MOUSE_RAY_PARAMS.FilterDescendantsInstances = {PlayerUtils.character}
+MOUSE_RAY_PARAMS.FilterType = Enum.RaycastFilterType.Exclude
 local DEFAULT_RAY_DISTANCE = 1000
 
 --[[
@@ -31,7 +34,8 @@ function MouseUtils.GetMouseCast(overrideRayDistance: number?, overrideMouseRay:
     local mouseRay = overrideMouseRay or MouseUtils.GetMouseRay()
     local mouseCast = workspace:Raycast(
         mouseRay.Origin, 
-        mouseRay.Direction * (overrideRayDistance or DEFAULT_RAY_DISTANCE)
+        mouseRay.Direction * (overrideRayDistance or DEFAULT_RAY_DISTANCE),
+        MOUSE_RAY_PARAMS
     )
 
     return mouseCast

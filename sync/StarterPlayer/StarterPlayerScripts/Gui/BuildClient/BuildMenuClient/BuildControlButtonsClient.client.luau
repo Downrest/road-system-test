@@ -28,11 +28,9 @@ end
 init()
 
 FocusSignals.BuildInterface.OnFocus(buildMenu, function()
-    warn("roadselection focused")
     GuiAnimations.EnterTween(buildControlButtons, BUILD_CONTROL_BUTTONS_ANIM_DATA)
 end)
 
 FocusSignals.BuildInterface.OnDefocus(buildMenu, function()
-    warn("roadselection defocused")
     GuiAnimations.ExitTween(buildControlButtons, BUILD_CONTROL_BUTTONS_ANIM_DATA)
 end)

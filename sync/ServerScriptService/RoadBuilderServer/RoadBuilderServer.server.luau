@@ -39,7 +39,7 @@ local function assertRoadVariant(
     end
 end
 
-RoadBuilderEvents.RequestRoadData.OnServerInvoke = function(player, roadPointPosition: Vector3)
+RoadBuilderEvents.RequestRoadData.OnServerInvoke = function(_, roadPointPosition: Vector3)
 	return RoadBuilderCache.RoadPointCacheList[RoadBuilderCache.Vector3ToRoadInstanceCacheList[roadPointPosition]]
 end
 
@@ -71,7 +71,8 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
                 workspace
             ),
 
-            fromPositionVector2Data
+            fromPositionVector2Data,
+            true
         )
 
     -- step 1: extend from origin road

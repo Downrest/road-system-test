@@ -27,11 +27,12 @@ function Easing.EaseInSine(x: number): number
 	return 1 - math.cos((x * math.pi) / 2)
 end
 
---[[
-
-]]
 function Easing.EaseOutSine(x: number): number
 	return math.sin((x * math.pi) / 2)
+end
+
+function Easing.EaseInOutSine(x: number): number
+	return -(math.cos(math.pi * x) - 1) / 2
 end
 
 --[[

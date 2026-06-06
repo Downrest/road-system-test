@@ -27,11 +27,9 @@ end
 init()
 
 FocusSignals.MainInterface.OnFocus(taskbarGui, function()
-	warn("taskbar focused")
     GuiAnimations.EnterTween(taskbarGuiFrame, TASKBAR_GUI_ANIM_DATA)
 end)
 
 FocusSignals.MainInterface.OnDefocus(taskbarGui, function()
-	warn("taskbar defocused")
     GuiAnimations.ExitTween(taskbarGuiFrame, TASKBAR_GUI_ANIM_DATA)
 end)

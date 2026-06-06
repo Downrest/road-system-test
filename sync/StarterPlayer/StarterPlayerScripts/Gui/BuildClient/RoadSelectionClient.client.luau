@@ -38,7 +38,6 @@ end
 
 local function roadButtonTrigger(roadButtonInstances: RoadButtonInstances, roadPreset)
     RoadBuilderState.CurrentRoadType(roadPreset.RoadType)
-    warn(RoadBuilderState.CurrentRoadType())
     FocusSignals.BuildInterface.FocusGuis(buildMenu).DefocusAllGuisExcept()
 end
 
@@ -55,9 +54,7 @@ local function init()
         roadButtonUpdate(roadButtonInstances, roadPreset)
         roadButtonClone.Parent = roadSelection.RoadList
 
-        warn("gajdwh d")
         roadButtonClone.MouseButton1Down:Connect(function()
-            warn("hello????")
             roadButtonTrigger(roadButtonInstances, roadPreset)
         end)
 	end
@@ -68,12 +65,10 @@ end
 init()
 
 FocusSignals.BuildInterface.OnFocus(roadSelection, function()
-    warn("roadselection focused")
     GuiAnimations.EnterTween(roadSelection, ROAD_SELECTION_ANIM_DATA)
 end)
 
 FocusSignals.BuildInterface.OnDefocus(roadSelection, function()
-    warn("roadselection defocused")
     
     GuiAnimations.ExitTween(roadSelection, ROAD_SELECTION_ANIM_DATA)
 end)
