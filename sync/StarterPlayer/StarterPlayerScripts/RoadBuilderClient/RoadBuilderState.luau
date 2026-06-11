@@ -25,17 +25,17 @@ State.DEFAULT_VALUES = {
     };
 }
 
-type IsInBuildMenu = boolean
-type IsPromptedSelection = boolean
-type IsMovingSelection = {isMoving: boolean, isCustomPosition: boolean}
-type IsHoveringExistingRoadPoint = boolean
-type IsVisualizing = boolean
+export type IsInBuildMenu = boolean
+export type IsPromptedSelection = boolean
+export type IsMovingSelection = {isMoving: boolean, isCustomPosition: boolean}
+export type IsHoveringExistingRoadPoint = boolean
+export type IsVisualizing = boolean
 
-type CurrentRoadType = string?
-type CurrentGoalPoint = {goalPoint: BasePart?, referenceInstance: BasePart?}
-type CurrentSelectionPoint = {selectionPoint: BasePart?, selectionDirection: Vector2}
+export type CurrentRoadType = string?
+export type CurrentGoalPoint = {goalPoint: BasePart?, referenceInstance: BasePart?}
+export type CurrentSelectionPoint = {selectionPoint: BasePart?, selectionDirection: Vector2}
 
-type StateNames = 
+export type StateNames = 
     "IsInBuildMenu"
     | "IsPromptedSelection"
     | "IsMovingSelection" 
@@ -58,7 +58,6 @@ State.CurrentSelectionPoint = Vide.source(State.DEFAULT_VALUES.CurrentSelectionP
 
 type VideDerive = (callback: () -> (any)) -> (() -> (any))
 type VideEffect = (callback: () -> ()) -> ()
-
 
 function State.SetMovingSelection(isMoving: boolean, isCustomPosition: boolean)
     State.IsMovingSelection({
@@ -163,10 +162,22 @@ function State.GetStates()
     }
 end
 
+export type CapturedStates = {
+    isInBuildMenu: IsInBuildMenu;
+    isPromptedSelection: IsPromptedSelection;
+    isMovingSelection: IsMovingSelection;
+    isHoveringExistingRoadPoint: IsMovingSelection;
+    isVisualizing: IsVisualizing;
+
+    currentRoadType: CurrentRoadType;
+    currentGoalPoint: CurrentGoalPoint;
+    currentSelectionPoint: CurrentSelectionPoint;
+}
+
 --[[
     Returns a dictionary of each state value by the time this function was called, reducing boilerplate. To avoid unforeseen side-effects with tracking methods like `Vide.effect()`, captured states are untracked via `Vide.untrack()`.
 ]]
-function State.CaptureStates()
+function State.CaptureStates(): CapturedStates
     -- had to cast because typechecker isnt smart enough to infer
     return {
         isInBuildMenu = Vide.untrack(State.IsInBuildMenu):: IsInBuildMenu;

@@ -238,7 +238,7 @@ local function update_descendants<T>(root: SourceNode<T>)
         --assert(node.effect)
 
         -- check if node is still owned in case destroyed after queued
-        if node.owner and evaluate_node(node) then
+		if typeof(node) == "table" and node.owner and evaluate_node(node) then
             queue_children_for_update(node)
         end
 
