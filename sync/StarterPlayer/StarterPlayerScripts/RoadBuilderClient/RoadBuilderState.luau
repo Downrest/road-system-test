@@ -166,7 +166,7 @@ export type CapturedStates = {
     isInBuildMenu: IsInBuildMenu;
     isPromptedSelection: IsPromptedSelection;
     isMovingSelection: IsMovingSelection;
-    isHoveringExistingRoadPoint: IsMovingSelection;
+    isHoveringExistingRoadPoint: IsHoveringExistingRoadPoint;
     isVisualizing: IsVisualizing;
 
     currentRoadType: CurrentRoadType;
@@ -178,17 +178,16 @@ export type CapturedStates = {
     Returns a dictionary of each state value by the time this function was called, reducing boilerplate. To avoid unforeseen side-effects with tracking methods like `Vide.effect()`, captured states are untracked via `Vide.untrack()`.
 ]]
 function State.CaptureStates(): CapturedStates
-    -- had to cast because typechecker isnt smart enough to infer
     return {
-        isInBuildMenu = Vide.untrack(State.IsInBuildMenu):: IsInBuildMenu;
-		isPromptedSelection = Vide.untrack(State.IsPromptedSelection):: IsPromptedSelection;
-        isMovingSelection = Vide.untrack(State.IsMovingSelection):: IsMovingSelection;
-        isHoveringExistingRoadPoint = Vide.untrack(State.IsMovingSelection):: IsMovingSelection;
-        isVisualizing = Vide.untrack(State.IsVisualizing):: IsVisualizing;
+        isInBuildMenu = Vide.untrack(State.IsInBuildMenu);
+        isPromptedSelection = Vide.untrack(State.IsPromptedSelection);
+        isMovingSelection = Vide.untrack(State.IsMovingSelection);
+        isHoveringExistingRoadPoint = Vide.untrack(State.IsMovingSelection);
+        isVisualizing = Vide.untrack(State.IsVisualizing);
 
-		currentRoadType = Vide.untrack(State.CurrentRoadType):: CurrentRoadType;
-        currentGoalPoint = Vide.untrack(State.CurrentGoalPoint):: CurrentGoalPoint;
-        currentSelectionPoint = Vide.untrack(State.CurrentSelectionPoint):: CurrentSelectionPoint;
+        currentRoadType = Vide.untrack(State.CurrentRoadType);
+        currentGoalPoint = Vide.untrack(State.CurrentGoalPoint);
+        currentSelectionPoint = Vide.untrack(State.CurrentSelectionPoint);
     }
 end
 
