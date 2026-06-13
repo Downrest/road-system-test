@@ -168,12 +168,14 @@ function SelectionPrompt.CreateSelectionPrompt(adornee: BasePart?): (
         Signal.new()
     )
 
-	warn("INITIATEDDDD IVISUALIZER GUIS")
+	local hasResetted = false
 	resetButton.MouseButton1Down:Connect(function()
-        selectionSignals.resetStarted:Fire()
-    end)
-    resetButton.MouseButton1Up:Connect(function()
-        selectionSignals.resetEnded:Fire()
+        if not hasResetted then
+            selectionSignals.resetStarted:Fire()
+        else
+            selectionSignals.resetEnded:Fire()
+        end
+        hasResetted = not hasResetted
     end)
     selectButton.MouseButton1Down:Connect(function()
         selectionSignals.selectTriggered:Fire()

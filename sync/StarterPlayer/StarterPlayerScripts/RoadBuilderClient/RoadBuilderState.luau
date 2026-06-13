@@ -182,7 +182,7 @@ function State.CaptureStates(): CapturedStates
         isInBuildMenu = Vide.untrack(State.IsInBuildMenu);
         isPromptedSelection = Vide.untrack(State.IsPromptedSelection);
         isMovingSelection = Vide.untrack(State.IsMovingSelection);
-        isHoveringExistingRoadPoint = Vide.untrack(State.IsMovingSelection);
+        isHoveringExistingRoadPoint = Vide.untrack(State.IsHoveringExistingRoadPoint);
         isVisualizing = Vide.untrack(State.IsVisualizing);
 
         currentRoadType = Vide.untrack(State.CurrentRoadType);
