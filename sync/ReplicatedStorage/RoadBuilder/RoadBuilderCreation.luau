@@ -332,8 +332,7 @@ function Creation.CreateExtensionRoad(
 	local originDirection = originVector2DataWithDir.direction
 	local originYLevel = originVector2DataWithDir.yLevel
 
-	--TODO: LOWKEY IM PRETTY SURE MOST OF THEM MANUALLY INDEX and not use the functions
-	-- WHEN ITS NOT SUPER NECESSARY, just double check
+	--TODO: other lines manually index rather than using the interface, fix pls
 	local originRoadPoint: BasePart? = RoadBuilderCache.GetRoadInstanceFromVector3(
 		VectorUtils.Vector3FromVector2AndY(originPosition, originYLevel)
 	)
