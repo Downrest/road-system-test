@@ -1,3 +1,5 @@
+--TODO: rename this to CreateRoadRequest, not to confuse with RoadConfigData
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.OverrideRoadConfig)
@@ -20,6 +22,8 @@ return function(
     fromPositionVector2Data: PointVector2Data.PointVector2Data,
     toPositionVector2Data: PointVector2Data.PointVector2Data?
 ): CreateRoadConfig
+    warn(fromPositionVector2Data.direction)
+    
     return {
         roadType = roadType;
         roadVariant = roadVariant;

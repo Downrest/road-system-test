@@ -2,21 +2,28 @@ local VisualizerClass = {}
 local internal = {}
 internal.__index = internal
 
-export type CacheDestructor = () -> ()
-export type Cache = {
-    destructor: CacheDestructor;
-    [string]: any;
-}
+type CacheDestructor = () -> ()
 
-function VisualizerClass.new<cacheType>(): VisualizerClass<cacheType>
-    local self = {}
+type DefaultTypeCache = {[string]: any}
+export type CacheDefault<typeCache = DefaultTypeCache> = typeCache & {
+    destructor: CacheDestructor;
+} 
+
+function VisualizerClass.inherit(self: {[any]: any})
     self.visualizerCache = {}
 
     return setmetatable(self, internal)
 end
 
+function internal.GetInstanceVisualData<typeCache>(
+    self: VisualizerClassPrivate,
+    instance: Instance
+): CacheDefault<typeCache>
+    return self.visualizerCache[instance]
+end
+
 function internal.CacheInstancesWithData(
-    self: VisualizerClass,
+    self: VisualizerClassPrivate,
     instancesToIndex: {Instance},
     data: {[string]: any}
 )
@@ -26,7 +33,7 @@ function internal.CacheInstancesWithData(
 end
 
 function internal.ClearVisualizedCache(
-    self: VisualizerClass,
+    self: VisualizerClassPrivate,
     whitelistedInstances: {Instance}
 )
     local visualizerCache = self.visualizerCache
@@ -47,8 +54,10 @@ function internal.ClearVisualizedCache(
     end
 end
 
-export type VisualizerClass<typeCache = any> = typeof(internal) & {
-    visualizerCache: {[Instance]: Cache & typeCache};
+export type VisualizerClassPublic<typeCache = any> = CacheDefault<typeCache> & {
+    GetInstanceVisualData: typeof(internal.GetInstanceVisualData);
 }
+
+export type VisualizerClassPrivate<typeCache = any> = CacheDefault<typeCache> & typeof(VisualizerClass)
 
 return VisualizerClass

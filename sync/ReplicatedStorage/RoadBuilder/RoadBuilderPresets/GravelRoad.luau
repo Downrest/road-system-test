@@ -15,6 +15,8 @@ return {
     Gui = {
         IconImageId = "rbxassetid://12268609102";
     };
+    --TODO: LOWKEY MOVE THESE TO BE PURELY ON THE CLIENT, PRESETS SHOULD NOT BE RESPONSIBLE FOR THIS
+    -- make roadbuildercreation take in a datawrapper purely for visualizeproperties as a parameter
     VisualizeProperties = {
         road = {
             CanQuery = false;

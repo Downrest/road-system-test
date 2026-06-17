@@ -1,8 +1,10 @@
-export type RoadInstanceTagEnums = "RoadPoint"
-type returned = {
-	RoadPoint: "RoadPoint";
+export type RoadPointTag = "RoadPoint"
+export type RoadInstanceTagEnums = RoadPointTag
+
+type RoadInstanceTagEnumsTable = {
+	RoadPoint: RoadPointTag;
 }
 
 return {
 	RoadPoint = "RoadPoint";
-}:: returned
+}:: RoadInstanceTagEnumsTable

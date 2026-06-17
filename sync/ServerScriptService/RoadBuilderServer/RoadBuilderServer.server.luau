@@ -48,10 +48,6 @@ RoadBuilderEvents.RequestRoadData.OnServerInvoke = function(_, roadPointPosition
 	return RoadBuilderCache.RoadPointCacheList[RoadBuilderCache.Vector3ToRoadInstanceCacheList[roadPointPosition]]
 end
 
---[[
-    TODO: FINALIZE AN OVERRIDING FUNCTION FOR THIS, like an overarching function 
-    in RoadBuilderCache to clear out all traces of an old roadpoint 
-]]
 local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig)
     if not overrideRoadConfig or not overrideRoadConfig.shouldOverride then
         return
@@ -76,6 +72,10 @@ local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.Overr
         dependentRoad:Destroy()
     end
 
+    --[[
+        TODO: FINALIZE AN OVERRIDING FUNCTION FOR THIS, like an overarching function 
+        in RoadBuilderCache to clear out all traces of an old roadpoint 
+    ]]
     for _, endPoint in previousRoadPointCache.pairExtensionEndRoadPoints do
         local endPointCache = RoadBuilderCache.RoadPointCacheList[endPoint]
         if not endPointCache then

@@ -52,7 +52,8 @@ type SelectionPromptData = {
     destructor: () -> ();
 }
 
-local SelectionPrompt = VisualizerClass.new<<SelectionPromptData>>()
+local SelectionPrompt = {}
+VisualizerClass.inherit(SelectionPrompt)
 
 local SELECTION_GUI_ASSET = RoadBuilderAssetGetter.guis.SelectionGui
 
@@ -207,5 +208,7 @@ function SelectionPrompt.CreateSelectionPrompt(adornee: BasePart?): (
         selectionSignals,
         destructor
 end
+
+type SelectionPrompt = typeof(SelectionPrompt) & VisualizerClass.VisualizerClassPublic
 
 return SelectionPrompt
