@@ -22,7 +22,7 @@ return function(
     fromPositionVector2Data: PointVector2Data.PointVector2Data,
     toPositionVector2Data: PointVector2Data.PointVector2Data?
 ): CreateRoadConfig
-    warn(fromPositionVector2Data.direction)
+    --warn(fromPositionVector2Data.direction)
     
     return {
         roadType = roadType;

@@ -2,20 +2,26 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
 
-export type VisualizeCreateType = {
+export type VisualizeCreateType<
+    roadPointProperties = {[string]: any}, 
+    roadProperties = {[string]: any}
+> = {
     tag: CreateTypeEnums.VisualizeType;
-    visualizedProperties: VisualizedProperties;
+    visualizedProperties: VisualizedProperties<roadPointProperties, roadProperties>;
 }
 
-type VisualizedProperties = {
-    roadPoint: {[string]: any};
-    road: {[string]: any};
+type VisualizedProperties<
+    roadPointProperties = {[string]: any}, 
+    roadProperties = {[string]: any}
+> = {
+    roadPoint: roadPointProperties;
+    road: roadProperties;
 }
 
-return function(
+return function<roadPointProperties, roadProperties>(
     roadPointProperties: {[string]: any},
     roadProperties: {[string]: any}
-): VisualizeCreateType
+): VisualizeCreateType<roadPointProperties, roadProperties>
     return {
         tag = CreateTypeEnums.Visualize;
         visualizedProperties = {

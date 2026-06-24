@@ -75,4 +75,28 @@ function Easing.EaseInExpo(x: number): number
 	return (x == 0) and 0 or math.pow(2, 10 * x - 10)
 end
 
+--[[
+	BACK
+]]
+
+--[[
+	https://easings.net/#easeInBack
+]]
+function Easing.EaseInBack(x: number, intensity: number?): number
+	local c1 = intensity or 1.70158;
+	local c3 = c1 + 1;
+	
+	return c3 * x * x * x - c1 * x * x
+end
+
+--[[
+	https://easings.net/#easeOutBack
+]]
+function Easing.EaseOutBack(x: number, intensity: number?): number
+	local c1 = intensity or 1.70158;
+	local c3 = c1 + 1;
+	
+	return 1 + c3 * math.pow(x - 1, 3) + c1 * math.pow(x - 1, 2)
+end
+
 return Easing

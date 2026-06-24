@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Vide = require(ReplicatedStorage.SharedPackages.Vide)
-local context = require(ReplicatedStorage.SharedPackages.Vide.context)
 
 local State = {}
 
@@ -13,7 +12,7 @@ State.DEFAULT_VALUES = {
     IsMovingSelection = {isMoving = false, isCustomPosition = false};
     IsHoveringExistingRoadPoint = false;
     IsVisualizing = false;
-    IsValidRoad = false;
+    IsValidRoad = true;
 
     CurrentRoadType = nil;
     CurrentGoalPoint = {

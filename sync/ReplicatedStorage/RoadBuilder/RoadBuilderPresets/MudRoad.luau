@@ -15,16 +15,4 @@ return {
     Gui = {
         IconImageId = "rbxassetid://12268609102";
     };
-    VisualizeProperties = {
-        road = {
-            CanQuery = false;
-            CanCollide = false;
-			Transparency = 0;
-		};
-		roadPoint = {
-            CanQuery = false;
-            CanCollide = false;
-			Transparency = 0;
-		};
-    }
 }

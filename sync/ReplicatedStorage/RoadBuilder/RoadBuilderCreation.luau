@@ -11,7 +11,6 @@ local RoadCreationOutputData = require(ReplicatedStorage.RoadBuilder.RoadBuilder
 local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
 local RoadInstanceTagEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadInstanceTagEnums)
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
-local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
 local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
 local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateTypeWrappers.DefaultCreateType)
@@ -37,22 +36,15 @@ local ASSETS = {
 	};
 }
 local ROAD_ANGLE_CORRECTION = math.pi/2
-local ROAD_TYPE_TO_VISUALIZE_PROPERTIES = {
-	[RoadTypeEnums.Gravel] = RoadBuilderPresets.RoadTypeData[RoadTypeEnums.Gravel].VisualizeProperties;
-	[RoadTypeEnums.Mud] = RoadBuilderPresets.RoadTypeData[RoadTypeEnums.Mud].VisualizeProperties;
-}
 --TODO: do something son
 local Z_FIGHTING_Y_OFFSET = .001
 
-local function applyVisualizeProperties(
+--TODO: apply properties regardless
+local function applyProperties(
 	roadConfig: RoadConfigData.RoadConfigData,
 	roadVariant: RoadVariantEnums.RoadVariantEnums,
 	roadPart: BasePart
 )
-	if roadConfig.createType.tag ~= CreateTypeEnums.Visualize then
-		return
-	end
-
 	PropertiesUtils.ApplyProperties(
 		roadPart, 
 		roadVariant == RoadVariantEnums.RoadPoint
@@ -78,7 +70,6 @@ local function createRoadPoint(
 	directionToData: PointVector2Data.PointVector2Data?,
 	shouldBeCachedAsEndPoint: boolean?
 ): (BasePart, Vector2)
-	--TODO: got a weird error, look into this lol
 	local pointPosition = toPointData.position
 	local pointYLevel = toPointData.yLevel
 
@@ -97,7 +88,7 @@ local function createRoadPoint(
 	
 	newRoadPoint:AddTag(RoadInstanceTagEnums.RoadPoint)
 
-	applyVisualizeProperties(roadConfig, roadVariant, newRoadPoint)
+	applyProperties(roadConfig, roadVariant, newRoadPoint)
 
 	-- caching if applicable
 	if roadConfig.createType.tag == CreateTypeEnums.Default then
@@ -107,7 +98,7 @@ local function createRoadPoint(
 				shouldBeCachedAsEndPoint and RoadPointCacheTypeEnums.EndPoint or RoadPointCacheTypeEnums.DependentPoint,
 				{}, -- will contain other end roadpoints connected to this roadpoint
 				{}, -- usually placeholder, unless a standalone road point is created
-				nil
+				RoadCreationConfig.DEFAULT_ROAD_POINT_AXIS
 			)
 		)
 	end
@@ -148,7 +139,7 @@ local function createRoad(
 		VectorUtils.Vector3FromVector2AndY(goalPosition, toRoadData.yLevel)
 	) * CFrame.Angles(0, ROAD_ANGLE_CORRECTION, 0)
 
-	applyVisualizeProperties(roadConfig, roadVariant, newRoad)
+	applyProperties(roadConfig, roadVariant, newRoad)
 
 	return newRoad
 end
@@ -281,6 +272,7 @@ end
 
 	Vector3 Y Level defaults to `originVector2Data.yLevel`, but you can override with `overrideYLevel`
 ]]
+--TODO: rename this to CreateOriginRoadPoint
 function Creation.CreateOriginRoad(
 	roadConfig: RoadConfigData.RoadConfigData,
 
@@ -326,13 +318,13 @@ function Creation.CreateExtensionRoad(
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
 	assertCreateDefaultTypeToServer(createType)
-	local roadParent = roadConfig.roadParent
 
 	local originPosition = originVector2DataWithDir.position
 	local originDirection = originVector2DataWithDir.direction
 	local originYLevel = originVector2DataWithDir.yLevel
 
-	--TODO: other lines manually index rather than using the interface, fix pls
+	--TODO: LOWKEY IM PRETTY SURE MOST OF THEM MANUALLY INDEX and not use the functions
+	-- WHEN ITS NOT SUPER NECESSARY, just double check
 	local originRoadPoint: BasePart? = RoadBuilderCache.GetRoadInstanceFromVector3(
 		VectorUtils.Vector3FromVector2AndY(originPosition, originYLevel)
 	)
@@ -368,8 +360,8 @@ function Creation.CreateExtensionRoad(
 		between the origin and destination
 	]]
 	for t = 0, 1, 1/curveFrequency do
-		local curveT = MathEasing.EaseOutSine(t)
-		local verticalT = MathEasing.EaseInOutSine(t)
+		local curveT = RoadCreationConfig.ROAD_CURVE_T_EASING.horizontal(t)
+		local verticalT = RoadCreationConfig.ROAD_CURVE_T_EASING.vertical(t)
 
 		local curvePosition = curveInit.get(curveT)
 		local curveToOriginMagnitude = (curvePosition - originPosition).Magnitude
@@ -388,7 +380,6 @@ function Creation.CreateExtensionRoad(
 
 			roadConfig,
 			RoadVariantEnums.RoadExtension,
-			roadParent,
 
 			PointVector2Data(
 				previousRoadPointPosition, 

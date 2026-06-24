@@ -10,11 +10,15 @@ local Config = {
 
 	-- limits road points from getting closer in distance between either origin or goal beyond this value
 	ROAD_CURVE_EDGE_LIMIT = 2;
+	ROAD_CURVE_T_EASING = {
+		horizontal = MathEasing.EaseInOutSine;
+		vertical = MathEasing.EaseInOutSine;
+	};
 	--[[
 		control points for bezier curve ranging [0, 1], depicts the expected road curve
 	]]
 	ROAD_CURVE_LERP_VALUES = {
-		MathEasing.GetEasingPointsTuple(10, MathEasing.EaseInSine)
+		MathEasing.GetEasingPointsTuple(10, MathEasing.EaseInOutSine)
 	};
 	-- amount of road points per nStuds is created in the entire road extension curve
 	ROAD_CURVE_FREQUENCY_PER_N_STUDS = {
@@ -28,7 +32,7 @@ local Config = {
 	]]
 
 	ROAD_VALIDATION_VALUES = {
-		roadCurveMaximumAngle = 30;
+		roadCurveMaximumAngle = 15;
 	};
 	ROAD_VALIDATION_RULES = {
 		isRoadAngleLimited = true;

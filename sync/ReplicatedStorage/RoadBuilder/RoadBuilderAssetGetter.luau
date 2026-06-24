@@ -10,6 +10,7 @@ local mudFolder = roadsFolder.Mud
 
 local guisFolder = script.Guis
 local selectionGui = guisFolder.SelectionGui
+local errorAlertGui = guisFolder.ErrorAlert
 
 local highlightsFolder = script.Highlights
 local visualizeRoadHighlight = highlightsFolder.VisualizeRoadHighlight
@@ -28,6 +29,7 @@ AssetGetter.roadAssets = {
 
 AssetGetter.guis = {
 	SelectionGui = selectionGui;
+	ErrorAlert = errorAlertGui;
 }
 
 AssetGetter.highlights = {

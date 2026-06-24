@@ -1,10 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
-local TweenService = game:GetService("TweenService")
 
 local BuildAnimData = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAnimData.BuildAnimData)
 local RoadBuilderPresets = require(ReplicatedStorage.RoadBuilder.RoadBuilderPresets)
-local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local FocusSignals = require(StarterPlayer.StarterPlayerScripts.Gui.GuiSignals.FocusSignals)
 local GuiAnimations = require(StarterPlayer.StarterPlayerScripts.Gui.GuiUtils.GuiAnimations)
 local GuiAssetGetter = require(StarterPlayer.StarterPlayerScripts.Gui.GuiAssetGetter)

@@ -3,7 +3,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 
 local VisualizerClass = require(StarterPlayer.StarterPlayerScripts.ClientClasses.VisualizerClass)
 local GuiDragUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.GuiDragUtils)
-local PlayerUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.PlayerUtils)
+local RoadInterfaceConfig = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderConfig.RoadInterfaceConfig)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
 local Signal = require(ReplicatedStorage.SharedPackages.Signal)
 
@@ -57,8 +57,8 @@ VisualizerClass.inherit(SelectionPrompt)
 
 local SELECTION_GUI_ASSET = RoadBuilderAssetGetter.guis.SelectionGui
 
-function SelectionPrompt.ClearSelectionPrompts(...)
-    return SelectionPrompt:ClearVisualizedCache(...)
+function SelectionPrompt.ClearSelectionPrompts(whitelistedInstances: Instance | {Instance})
+    SelectionPrompt:ClearVisualizedCache(whitelistedInstances)
 end
 
 local function selectionPromptGui(
@@ -124,7 +124,7 @@ function SelectionPrompt.CreateSelectionPrompt(adornee: BasePart?): (
 )
     
 	local selectionGuiClone = SELECTION_GUI_ASSET:Clone()
-    selectionGuiClone.Parent = PlayerUtils.playerGui
+    selectionGuiClone.Parent = RoadInterfaceConfig.INTERFACE_PARENT
     if adornee then
         selectionGuiClone.Adornee = adornee
     end
@@ -196,7 +196,7 @@ function SelectionPrompt.CreateSelectionPrompt(adornee: BasePart?): (
     end
 
     SelectionPrompt:CacheInstancesWithData(
-        {selectionGuiClone},
+        selectionGuiClone,
         {
             signals = selectionSignals;
             destructor = destructor;
@@ -209,6 +209,6 @@ function SelectionPrompt.CreateSelectionPrompt(adornee: BasePart?): (
         destructor
 end
 
-type SelectionPrompt = typeof(SelectionPrompt) & VisualizerClass.VisualizerClassPublic
+export type SelectionPrompt = typeof(SelectionPrompt) & VisualizerClass.VisualizerClassPublic<SelectionPromptData>
 
-return SelectionPrompt
+return SelectionPrompt:: SelectionPrompt

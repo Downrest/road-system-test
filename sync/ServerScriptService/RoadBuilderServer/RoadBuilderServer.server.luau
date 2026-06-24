@@ -6,6 +6,7 @@ local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadBuilderPlayerState = require(ServerScriptService.RoadBuilderServer.RoadBuilderPlayerState)
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
 local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadConfig)
+local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateTypeWrappers.DefaultCreateType)
 local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.OverrideRoadConfig)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
@@ -19,6 +20,7 @@ local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 --[[
     load player state for road building system
 ]]
+--TODO: UHH NOT SURE IF UR GONNA STILL KEEP THIS LOL
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
         RoadBuilderPlayerState.NewPlayerState(player)
@@ -124,7 +126,7 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
         roadOutput = RoadBuilderCreation.CreateOriginRoad(
             RoadConfigData(
                 roadType, 
-                CreateTypeEnums.Default,
+                DefaultCreateType(),
                 workspace
             ),
 
@@ -137,7 +139,7 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
         roadOutput = RoadBuilderCreation.CreateExtensionRoad(
             RoadConfigData(
                 roadType, 
-                CreateTypeEnums.Default,
+                DefaultCreateType(),
                 workspace
             ),
 

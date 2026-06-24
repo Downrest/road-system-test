@@ -9,16 +9,23 @@ local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCre
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
+local VisualizeCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateTypeWrappers.VisualizeCreateType)
+local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
+local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
 
--- export type RoadPointCache = {
---     endRoadPointVector2Data: PointVector2Data.PointVector2Data;
---     destructor: DestructorFunction
--- }
+export type RoadPointCache = {
+    roadVariant: RoadVariantEnums.RoadVariantEnums;
+    destructor: () -> ();
+}
+export type RoadExtensionCache = {
+    roadVariant: RoadVariantEnums.RoadVariantEnums;
+    endRoadPointVector2Data: PointVector2Data.PointVector2Data;
+    destructor: () -> ();
+}
 
 local Visualization = {}
+--TODO: why do u have a remake cache on client script, is it seperate from the cache here?
 VisualizerClass.inherit(Visualization)
-
-local camera = workspace.CurrentCamera
 
 --[[
     HIGHLIGHTS
@@ -27,34 +34,36 @@ local camera = workspace.CurrentCamera
 local ROAD_POINT_HIGHLIGHT_LIMIT = 30
 
 local SIMULATED_ROAD_MODEL = Instance.new("Model")
-SIMULATED_ROAD_MODEL.Parent = camera
+SIMULATED_ROAD_MODEL.Parent = RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
 
 local VISUALIZE_ROAD_HIGHLIGHT_ASSET = RoadBuilderAssetGetter.highlights.VisualizeRoadHighlight
 local VISUALIZE_ROAD_POINT_HIGHLIGHT_ASSET = RoadBuilderAssetGetter.highlights.VisualizeRoadPointHighlight
 
 local simulatedRoadModelHighlight = VISUALIZE_ROAD_HIGHLIGHT_ASSET:Clone()
-simulatedRoadModelHighlight.Parent = camera
+simulatedRoadModelHighlight.Parent = RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
 simulatedRoadModelHighlight.Adornee = SIMULATED_ROAD_MODEL
 
 local focusHighlight = VISUALIZE_ROAD_POINT_HIGHLIGHT_ASSET:Clone()
-focusHighlight.Parent = camera
+focusHighlight.Parent = RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
 
 local roadPointHighlightsCache: {Highlight} = table.create(ROAD_POINT_HIGHLIGHT_LIMIT)
 for _ = 1, ROAD_POINT_HIGHLIGHT_LIMIT do
     local highlight = VISUALIZE_ROAD_POINT_HIGHLIGHT_ASSET:Clone()
-    highlight.Parent = camera
+    highlight.Parent = RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
     table.insert(roadPointHighlightsCache, highlight)
 end
 
-function Visualization.ClearVisualizedRoads(...)
-    return Visualization:ClearVisualizedCache(...)
+function Visualization.ClearVisualizedRoads(whitelistedInstances: Instance | {Instance})
+    return Visualization:ClearVisualizedCache(whitelistedInstances)
 end
 
 --[[
     Attaches `roadPointHighlightsCache[1]` to `roadPoint`.
 ]]
 function Visualization.AttachFocusHighlight(roadPoint: BasePart)
+    warn("HELLO???????: ", roadPoint)
     focusHighlight.Adornee = roadPoint
+    warn(focusHighlight.Adornee)
 end
 
 --[[
@@ -70,8 +79,8 @@ end
      The created road point is also indexed into `simulatedRoadCache`.
 ]]
 function Visualization.VisualizeRoadPoint(
-    roadType: string,
-    isValidRoad: boolean, --TODO: support this
+    roadType: RoadTypeEnums.RoadTypeEnums,
+    visualizeCreateType: VisualizeCreateType.VisualizeCreateType, --TODO: support this
 
     originVector2Data: PointVector2Data.PointVector2Data,
     avoidCaching: boolean?
@@ -79,8 +88,8 @@ function Visualization.VisualizeRoadPoint(
     local originRoadOutput = RoadBuilderCreation.CreateOriginRoad(
         RoadConfigData(
             roadType,
-            RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.default,
-            camera
+            visualizeCreateType,
+            RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
         ),
 
         originVector2Data
@@ -94,8 +103,9 @@ function Visualization.VisualizeRoadPoint(
 
     if not avoidCaching then
         Visualization:CacheInstancesWithData(
-            {originRoadPointInstance},
+            originRoadPointInstance,
             {
+                roadVariant = RoadVariantEnums.RoadPoint;
                 destructor = destructor;
             }
         )
@@ -113,8 +123,8 @@ end
     The created road extension is also indexed into `simulatedRoadCache`.
 ]]
 function Visualization.VisualizeRoadExtension(
-    roadType: string,
-    isValidRoad: boolean,
+    roadType: RoadTypeEnums.RoadTypeEnums,
+    visualizeCreateType: VisualizeCreateType.VisualizeCreateType,
 
     originVector2Data: PointVector2Data.PointVector2Data,
     goalVector2Data: PointVector2Data.PointVector2Data,
@@ -123,8 +133,8 @@ function Visualization.VisualizeRoadExtension(
     local originRoadPointOutput = RoadBuilderCreation.CreateOriginRoad(
         RoadConfigData(
             roadType,
-            RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.default,
-            camera
+            visualizeCreateType,
+            RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
         ),
 
         originVector2Data
@@ -132,8 +142,7 @@ function Visualization.VisualizeRoadExtension(
     local extensionRoadOutput = RoadBuilderCreation.CreateExtensionRoad(
         RoadConfigData(
             roadType,
-            --TODO: MAKE THESE ACTUALLY TAKE EFFECT
-            RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.default,
+            visualizeCreateType,
             SIMULATED_ROAD_MODEL
         ),
         
@@ -176,12 +185,11 @@ function Visualization.VisualizeRoadExtension(
     end
 
     if not avoidCaching then
-        --TODO: concern, this actually isnt being cleared out, so its infinitely taking up memory
-        -- touch on the remake system on client.luau and make it RUN THE DESTRUCTOR
         Visualization:CacheInstancesWithData(
             {endRoadPointInstance},
             {
                 endRoadPointVector2Data = endRoadPointVector2Data;
+                roadVariant = RoadVariantEnums.RoadExtension;
                 destructor = destructor;
             }
         )
@@ -195,6 +203,6 @@ function Visualization.VisualizeRoadExtension(
     )
 end
 
-export type Visualization = typeof(Visualization) & VisualizerClass.VisualizerClassPublic
+export type Visualization = typeof(Visualization) & VisualizerClass.VisualizerClassPublic<RoadPointCache & RoadExtensionCache>
 
 return Visualization:: Visualization
