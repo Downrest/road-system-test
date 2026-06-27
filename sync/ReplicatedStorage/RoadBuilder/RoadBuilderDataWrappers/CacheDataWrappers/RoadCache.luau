@@ -6,6 +6,6 @@ return function(
     dependeeRoadPoints: {BasePart}
 ): RoadCache
     return {
-        roadPoints = dependeeRoadPoints;
+        dependeeRoadPoints = dependeeRoadPoints;
     }
 end

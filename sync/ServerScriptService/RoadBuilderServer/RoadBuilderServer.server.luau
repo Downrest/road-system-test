@@ -3,19 +3,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
+local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
 local RoadBuilderPlayerState = require(ServerScriptService.RoadBuilderServer.RoadBuilderPlayerState)
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
-local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadConfig)
-local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateTypeWrappers.DefaultCreateType)
-local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.OverrideRoadConfig)
+local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
+local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.DefaultCreateType)
+local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.OverrideRoadConfig)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
 local RoadCreationOutputData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadCreationOutputData)
-local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
 local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
 local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
-local context = require(ReplicatedStorage.SharedPackages.Vide.context)
-local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 
 --[[
     load player state for road building system
@@ -45,10 +43,10 @@ local function assertRoadVariant(
     end
 end
 
-RoadBuilderEvents.RequestRoadData.OnServerInvoke = function(_, roadPointPosition: Vector3)
-    --TODO: make these use the function lol
-	return RoadBuilderCache.RoadPointCacheList[RoadBuilderCache.Vector3ToRoadInstanceCacheList[roadPointPosition]]
-end
+--  RoadBuilderEvents.RequestRoadData.OnServerInvoke = function(_, roadPointPosition: Vector3)
+--      --TODO: make these use the function lol
+--  	return RoadBuilderCache.RoadPointCacheList[RoadBuilderCache.Vector3ToRoadInstanceCacheList[roadPointPosition]]
+--  end
 
 local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig)
     if not overrideRoadConfig or not overrideRoadConfig.shouldOverride then
@@ -74,10 +72,6 @@ local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.Overr
         dependentRoad:Destroy()
     end
 
-    --[[
-        TODO: FINALIZE AN OVERRIDING FUNCTION FOR THIS, like an overarching function 
-        in RoadBuilderCache to clear out all traces of an old roadpoint 
-    ]]
     for _, endPoint in previousRoadPointCache.pairExtensionEndRoadPoints do
         local endPointCache = RoadBuilderCache.RoadPointCacheList[endPoint]
         if not endPointCache then
@@ -92,8 +86,8 @@ local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.Overr
             table.remove(endPointCache.pairExtensionEndRoadPoints, previousIndexInCache)
         end
     end
-    RoadBuilderCache.RoadPointCacheList[previousRoadPoint] = nil
-    RoadBuilderCache.Vector3ToRoadInstanceCacheList[previousRoadPoint.Position] = nil
+
+    RoadBuilderCache.ClearRoadPointCache(previousRoadPoint)
 end
 
 --[[
@@ -126,8 +120,7 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
         roadOutput = RoadBuilderCreation.CreateOriginRoad(
             RoadConfigData(
                 roadType, 
-                DefaultCreateType(),
-                workspace
+                DefaultCreateType()
             ),
 
             fromPositionVector2Data,
@@ -139,8 +132,7 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
         roadOutput = RoadBuilderCreation.CreateExtensionRoad(
             RoadConfigData(
                 roadType, 
-                DefaultCreateType(),
-                workspace
+                DefaultCreateType()
             ),
 
             fromPositionVector2Data, 

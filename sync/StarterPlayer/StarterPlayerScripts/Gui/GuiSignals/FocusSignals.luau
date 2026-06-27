@@ -31,20 +31,20 @@ local function onDefocus(signal: DefocusGuiSignal, targettedGui: GuiObject, defo
 end
 
 local function defocusAllGuisExcept(signal: DefocusGuiSignal, ...: GuiObject | {GuiObject})
-	local exemptedGuis = TableUtils.Merge(...)
+	local exemptedGuis = TableUtils.MergeArray(...)
 
 	signal:Fire(exemptedGuis)
 end
 
 local function focusGuis(_focusSignal: FocusGuiSignal, _defocusSignal: DefocusGuiSignal, ...: GuiObject | {GuiObject})
-	local focusedGuis = TableUtils.Merge(...) 
+	local focusedGuis = TableUtils.MergeArray(...) 
 	assert(#focusedGuis > 0, "FocusGuis() yet no guis passed in parameters")
 
 	_focusSignal:Fire(focusedGuis)
 
 	return {
 		DefocusAllGuisExcept = function(...)
-			defocusAllGuisExcept(_defocusSignal, TableUtils.Merge(focusedGuis, ...))
+			defocusAllGuisExcept(_defocusSignal, TableUtils.MergeArray(focusedGuis, ...))
 		end
 	}
 end

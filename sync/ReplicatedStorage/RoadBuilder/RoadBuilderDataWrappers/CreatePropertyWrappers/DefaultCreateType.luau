@@ -20,13 +20,13 @@ return function(): DefaultCreateType
 		tag = CreateTypeEnums.Default;
 		visualizedProperties = {
 			roadPoint = {
-				CanCollide = false;
+				CanCollide = true;
 				CanQuery = true;
 				Transparency = 0;
 			};
 			road = {
 				CanCollide = false;
-				CanQuery = true;
+				CanQuery = false;
 				Transparency = 0;
 			};
 		}

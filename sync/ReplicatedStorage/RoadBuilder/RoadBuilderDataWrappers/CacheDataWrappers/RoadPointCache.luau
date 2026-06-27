@@ -2,14 +2,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RoadPointCacheTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadPointCacheTypeEnums)
 export type RoadPointCache = {
-    roadPointCacheType: number,
+    roadPointCacheType: string,
     pairExtensionEndRoadPoints: {BasePart?},
     dependentRoads: {BasePart?},
     vector2Direction: Vector2
 }
 
 return function(
-    roadPointCacheType: number?,
+    roadPointCacheType: string?,
     pairExtensionEndRoadPoints: {BasePart?},
     dependentRoads: {BasePart},
     vector2Direction: Vector2

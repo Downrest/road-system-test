@@ -7,23 +7,21 @@ export type VisualizeCreateType<
     roadProperties = {[string]: any}
 > = {
     tag: CreateTypeEnums.VisualizeType;
-    visualizedProperties: VisualizedProperties<roadPointProperties, roadProperties>;
-}
-
-type VisualizedProperties<
-    roadPointProperties = {[string]: any}, 
-    roadProperties = {[string]: any}
-> = {
-    roadPoint: roadPointProperties;
-    road: roadProperties;
+    visualizedProperties: {
+        roadPoint: roadPointProperties;
+        road: roadProperties;
+    };
+    parent: Instance;
 }
 
 return function<roadPointProperties, roadProperties>(
     roadPointProperties: {[string]: any},
-    roadProperties: {[string]: any}
+    roadProperties: {[string]: any},
+    roadParent: Instance
 ): VisualizeCreateType<roadPointProperties, roadProperties>
     return {
         tag = CreateTypeEnums.Visualize;
+        parent = roadParent;
         visualizedProperties = {
             roadPoint = roadPointProperties;
             road = roadProperties;

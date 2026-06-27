@@ -1,10 +1,58 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateTypeWrappers.DefaultCreateType)
-local VisualizeCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateTypeWrappers.VisualizeCreateType)
+local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.DefaultCreateType)
+local VisualizeCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.VisualizeCreateType)
+
+local visualizationAssetContainer = workspace.CurrentCamera
+
+local function newHighlightColorProperties(
+    fillColor: Color3,
+    fillTransparency: number,
+    outlineColor: Color3,
+    outlineTransparency: number
+)
+    return {
+        FillColor = fillColor;
+        FillTransparency = fillTransparency;
+        OutlineColor = outlineColor;
+        OutlineTransparency = outlineTransparency;
+    }
+end
 
 return {
-    VISUALIZATION_ASSET_CONTAINER = workspace.Camera;
+    HIGHLIGHT_ROAD_POINT_LIMIT = 30;
+
+    HIGHLIGHT_ROAD_COLORS = {
+        default = newHighlightColorProperties(
+            Color3.new(0, 1, 0),
+            .95,
+            Color3.new(0, 1, 0),
+            .45
+        );
+    };
+    HIGHLIGHT_ROAD_POINT_COLORS = {
+        default = newHighlightColorProperties(
+            Color3.new(0, 1, 0),
+            .85,
+            Color3.new(0, 1, 0),
+            0
+        );
+    };
+    HIGHLIGHT_FOCUS_COLORS = {
+        dependentPoint = newHighlightColorProperties(
+            Color3.new(0.831373, 1, 0),
+            .75,
+            Color3.new(0.831373, 1, 0),
+            .5
+        );
+        endPoint = newHighlightColorProperties(
+            Color3.new(0, 1, 0),
+            .65,
+            Color3.new(0, 1, 0),
+            .25
+        );
+    };
+    VISUALIZATION_ASSET_CONTAINER = visualizationAssetContainer;
 	VISUALIZER_ROAD_CREATE_TYPES = {
         --[[
             a function because of necessary parameter(s):
@@ -27,7 +75,8 @@ return {
                         CanCollide = false;
                         CanQuery = false;
                         Transparency = 0;
-                    }
+                    },
+                    visualizationAssetContainer
                 );
             end
         end;
@@ -46,7 +95,8 @@ return {
 				CanQuery = false;
                 Transparency = .35;
                 Color = Color3.new(0.282353, 0.313725, 0.870588);
-            }
+            },
+            visualizationAssetContainer
         );
         error = VisualizeCreateType<<
             {CanCollide: boolean, CanQuery: boolean, Transparency: number, Color: Color3},
@@ -63,7 +113,8 @@ return {
 				CanQuery = false;
                 Transparency = .35;
                 Color = Color3.new(0.968627, 0.14902, 0.14902);
-            }
+            },
+            visualizationAssetContainer
         );
     };
 

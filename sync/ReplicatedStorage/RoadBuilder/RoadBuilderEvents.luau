@@ -1,6 +1,11 @@
-local Events = {}
+local createEventsFolder = script.CreationEvents
+local createRoadRequestEvent = createEventsFolder.CreateRoadRequest
 
-Events.CreateRoadRequest = script.CreateRoadRequest
-Events.RequestRoadData = script.RequestRoadData
+local cacheEventsFolder = script.CacheEvents
+local replicateRoadData = cacheEventsFolder.ReplicateRoadData
 
-return Events
+return {
+	CreateRoadRequest = createRoadRequestEvent;
+
+	ReplicateRoadData = replicateRoadData;
+}

@@ -9,13 +9,12 @@ type CacheDefault<typeCache = DefaultTypeCache> = typeCache & {
 
 type VisualizerCache<typeCache> = {[Instance]: CacheDefault<typeCache>}
 
-local function ensureInstanceTable(instance: {Instance} | Instance): {Instance}
-	local instanceTable = instance
-	if typeof(instance) ~= "table" then
-		instanceTable = {instance}
+local function ensureInstanceTable(instances: {Instance} | Instance): {Instance}
+	if typeof(instances) ~= "table" then
+		instances = {instances}
 	end
 
-	return instanceTable
+	return instances
 end
 
 function internal.GetInstanceVisualData<typeCache>(

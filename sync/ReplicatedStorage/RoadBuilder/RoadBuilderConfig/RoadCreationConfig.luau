@@ -3,6 +3,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local MathEasing = require(ReplicatedStorage.SharedUtils.MathUtils.MathEasing)
 
+local roadinstancesFolder = workspace.RoadInstances
+local roadPointFolder: Folder = roadinstancesFolder.RoadPoint
+local roadFolder = roadinstancesFolder.Road
+
 local Config = {
 	--[[
 		CREATION
@@ -23,9 +27,15 @@ local Config = {
 	-- amount of road points per nStuds is created in the entire road extension curve
 	ROAD_CURVE_FREQUENCY_PER_N_STUDS = {
 		frequency = 1,
-		nStuds = 3.5
+		nStuds = 2.5
 	};
 	DEFAULT_ROAD_POINT_AXIS = Vector2.xAxis;
+
+	--TODO: UHHH THIS CHANGE ISNT REFLECTED ON SOME CODE YET
+	ROAD_PARENTS = {
+		roadPoint = roadPointFolder;
+		road = roadFolder;
+	};
 
 	--[[
 		VALIDATION

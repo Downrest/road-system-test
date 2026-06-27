@@ -7,4 +7,5 @@ type RoadInstanceTagEnumsTable = {
 
 return {
 	RoadPoint = "RoadPoint";
+	
 }:: RoadInstanceTagEnumsTable

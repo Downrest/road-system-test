@@ -1,4 +1,4 @@
 return {
-    EndPoint = 1;
-    DependentPoint = 2;
+    EndPoint = "EndPoint";
+    DependentPoint = "DependentPoint";
 }
