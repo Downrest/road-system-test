@@ -138,12 +138,6 @@ function Visualization.VisualizeRoadExtension(
     local dependentRoadInstances = extensionRoadOutput.dependentRoadInstances
     table.insert(dependentRoadInstances.roadPoints, originRoadPointOutput.endRoadPointInstance) -- extra line to insert originRoadPoint
 
-    -- local allRoadPoints = table.move(dependentRoadInstances.roadPoints, 1, #dependentRoadInstances.roadPoints, 2, {endRoadPointInstance})
-    -- if shouldHighlight then
-    --     RoadPointHighlight.HighlightRoadPoints(endRoadPointInstance, PointHighlightEnum.EndPointHighlight)
-    --     RoadPointHighlight.HighlightRoadPoints(dependentRoadInstances.roadPoints, PointHighlightEnum.DependentPointHighlight)
-    -- end
-
     local function destructor()
 		endRoadPointInstance:Destroy()
 		for _, roadPoint in dependentRoadInstances.roadPoints do

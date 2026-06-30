@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
 local MathCurves = require(ReplicatedStorage.SharedUtils.MathUtils.MathCurves)
+
 local CurveUtils = {}
 
 local function curveControlPointsFromCurveLerpValues(

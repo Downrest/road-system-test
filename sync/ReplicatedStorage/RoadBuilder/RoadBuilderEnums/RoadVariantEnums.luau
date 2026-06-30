@@ -3,6 +3,6 @@ export type Road = "Road"
 export type RoadVariantEnums = RoadPoint | Road
 
 return {
-	RoadPoint = "RoadPoint";
-	Road = "Road";
+	RoadPoint = "RoadPoint":: RoadPoint;
+	Road = "Road":: Road;
 }

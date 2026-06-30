@@ -2,17 +2,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
+local RoadPresetData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadPresetData)
 
 local roadType = RoadTypeEnums.Gravel
 
-return {
-    Name = roadType;
-    RoadType = roadType;
-    Assets = {
-        Road = RoadBuilderAssetGetter.roadAssets[roadType].road;
-        RoadPoint = RoadBuilderAssetGetter.roadAssets[roadType].roadPoint;
-    };
-    Gui = {
-        IconImageId = "rbxassetid://12268609102";
-    };
-}
+return RoadPresetData(
+    roadType,
+    roadType,
+
+    RoadBuilderAssetGetter.roadAssets[roadType].roadPoint,
+    RoadBuilderAssetGetter.roadAssets[roadType].road,
+
+    "rbxassetid://12268609102"
+)

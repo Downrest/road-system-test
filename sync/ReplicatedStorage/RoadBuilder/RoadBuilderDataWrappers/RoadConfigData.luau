@@ -10,7 +10,6 @@ export type RoadConfigData = {
 	createType: CreateTypes;
     overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig?;
 }
-
 export type CreateTypes = DefaultCreateType.DefaultCreateType
     | VisualizeCreateType.VisualizeCreateType
 

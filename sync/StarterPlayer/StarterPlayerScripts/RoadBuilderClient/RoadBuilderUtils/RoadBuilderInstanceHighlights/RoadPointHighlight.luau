@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local RoadVisualizationConfig = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderConfig.RoadVisualizationConfig)
-local PointHighlightEnum = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderEnums.PointHighlightEnum)
+local PointHighlightEnums = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderEnums.PointHighlightEnums)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local TableUtils = require(ReplicatedStorage.SharedUtils.TableUtils)
@@ -11,19 +11,19 @@ local PointHighlight = {}
 
 type HightlightData = {
     highlightInstance: Highlight;
-    highlightEnum: PointHighlightEnum.PointHighlightEnums;
+    highlightEnum: PointHighlightEnums.PointHighlightEnums;
 }
 
 local ROAD_POINT_HIGHLIGHT = RoadBuilderAssetGetter.highlights.VisualizeRoadPointHighlight
 local HIGHLIGHT_ENUM_TO_COLORS = {
-    [PointHighlightEnum.EndPointHighlight] = RoadVisualizationConfig.HIGHLIGHT_ROAD_POINT_COLORS.endPoint;
-    [PointHighlightEnum.DependentPointHighlight] = RoadVisualizationConfig.HIGHLIGHT_ROAD_POINT_COLORS.dependentPoint;
+    [PointHighlightEnums.EndPointHighlight] = RoadVisualizationConfig.HIGHLIGHT_ROAD_POINT_COLORS.endPoint;
+    [PointHighlightEnums.DependentPointHighlight] = RoadVisualizationConfig.HIGHLIGHT_ROAD_POINT_COLORS.dependentPoint;
 }
-local DEFAULT_HIGHLIGHT_ENUM = PointHighlightEnum.DependentPointHighlight
+local DEFAULT_HIGHLIGHT_ENUM = PointHighlightEnums.DependentPointHighlight
 
 local function highlightData(
     highlightInstance: Highlight,
-    highlightEnum: PointHighlightEnum.PointHighlightEnums
+    highlightEnum: PointHighlightEnums.PointHighlightEnums
 ): HightlightData
     return {
         highlightInstance = highlightInstance;
@@ -53,7 +53,7 @@ PointHighlight.TrackedRoadPoints = table.create(RoadVisualizationConfig.HIGHLIGH
 
 local function applyHighlightEnumColor(
     highlight: Highlight,
-    highlightEnum: PointHighlightEnum.PointHighlightEnums
+    highlightEnum: PointHighlightEnums.PointHighlightEnums
 )
     local colorProperties = HIGHLIGHT_ENUM_TO_COLORS[highlightEnum]
     assert(colorProperties, "Failed to apply highlight enum color!")
@@ -70,7 +70,7 @@ end
 
 function PointHighlight.HighlightRoadPoints(
     roadPoints: BasePart | {BasePart}, 
-    highlightEnum: PointHighlightEnum.PointHighlightEnums
+    highlightEnum: PointHighlightEnums.PointHighlightEnums
 )
     assert(roadPoints, "`roadPoints` required for highlighting!")
     assert(roadPoints, "`highlightEnum` required for highlighting!")

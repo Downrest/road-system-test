@@ -21,8 +21,8 @@ local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 local InputManager = require(StarterPlayer.StarterPlayerScripts.Inputs.InputManager)
 local RoadVisualizationConfig = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderConfig.RoadVisualizationConfig)
 local RoadExtensionVisualData = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderDataWrappers.VisualizationWrappers.RoadExtensionVisualData)
-local PointHighlightEnum = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderEnums.PointHighlightEnum)
-local RemakeTypeEnum = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderEnums.RemakeTypeEnum)
+local PointHighlightEnums = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderEnums.PointHighlightEnums)
+local RemakeTypeEnums = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderEnums.RemakeTypeEnums)
 local RoadBuilderState = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderState)
 local RoadBuilderErrorAlert = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderUtils.RoadBuilderErrorAlert)
 local RoadPointHighlight = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderUtils.RoadBuilderInstanceHighlights.RoadPointHighlight)
@@ -31,7 +31,7 @@ local RoadBuilderVisualization = require(StarterPlayer.StarterPlayerScripts.Road
 
 type RemakeState = {
 	isRemaking: boolean;
-	remakeType: RemakeTypeEnum.RemakeTypeEnum?;
+	remakeType: RemakeTypeEnums.RemakeTypeEnums?;
 
 	wasEverRemaked: boolean;
 }
@@ -128,7 +128,7 @@ end
 
 local function updateRemakingStatus(
 	isRemaking: boolean,
-	remakeType: RemakeTypeEnum.RemakeTypeEnum?
+	remakeType: RemakeTypeEnums.RemakeTypeEnums?
 )
 	currentRemakeRoadCache.remakeState.isRemaking = isRemaking
 	currentRemakeRoadCache.remakeState.remakeType = remakeType
@@ -286,7 +286,7 @@ local function visualizeStandardRoad(capturedStates: RoadBuilderState.CapturedSt
 
 		PointVector2Data(
 			capturedStates.currentSelectionPoint.selectionPoint.Position, 
-			capturedStates.currentSelectionPoint.selectionDirection
+			capturedStates.currentSelectionPoint.selectionDirection or RoadCreationConfig.DEFAULT_ROAD_POINT_AXIS
 		),
 		PointVector2Data(states.currentGoalPoint().goalPoint.Position)
 	)
@@ -409,7 +409,7 @@ InputManager.OnPress:Connect(function()
 
 	-- vertical remake
 	onPressJanitor:Add(SELECTION_GUI_SIGNALS.verticalDragContinue:Connect(function()
-		if remakeState.isRemaking and remakeState.remakeType ~= RemakeTypeEnum.Vertical then
+		if remakeState.isRemaking and remakeState.remakeType ~= RemakeTypeEnums.Vertical then
 			return
 		end
 
@@ -433,7 +433,7 @@ InputManager.OnPress:Connect(function()
 		end
 		updateRemakingStatus(
 			true,
-			RemakeTypeEnum.Vertical
+			RemakeTypeEnums.Vertical
 		)
 		setWasEverRemaked(true)
 
@@ -442,7 +442,7 @@ InputManager.OnPress:Connect(function()
 		RoadBuilderState.SetMovingSelection(true)
 	end))
 	onPressJanitor:Add(SELECTION_GUI_SIGNALS.verticalDragEnded:Connect(function()
-		if remakeState.remakeType ~= RemakeTypeEnum.Vertical then
+		if remakeState.remakeType ~= RemakeTypeEnums.Vertical then
 			return
 		end
 		updateRemakingStatus(
@@ -461,7 +461,7 @@ InputManager.OnPress:Connect(function()
 		end
 		updateRemakingStatus(
 			true,
-			RemakeTypeEnum.Freemove
+			RemakeTypeEnums.Freemove
 		)
 		setWasEverRemaked(true)
 
@@ -469,7 +469,7 @@ InputManager.OnPress:Connect(function()
 		RoadBuilderState.SetMovingSelection(true)
 	end))
 	onPressJanitor:Add(SELECTION_GUI_SIGNALS.resetEnded:Connect(function()
-		if remakeState.remakeType ~= RemakeTypeEnum.Freemove then
+		if remakeState.remakeType ~= RemakeTypeEnums.Freemove then
 			return
 		end
 		updateRemakingStatus(
@@ -758,14 +758,6 @@ RunService.Heartbeat:Connect(function()
 			end
 		end
 
-		-- --[[
-		-- 	SELECTION PROMPT
-		-- ]]
-
-		-- if SELECTION_GUI.gui.Enabled then
-		-- 	RoadBuilderSelectionPrompt.ToggleValidRoadSelection(SELECTION_GUI, capturedStates.isValidRoad)
-		-- end
-
 		--[[
 			POSITIONING GOALPOINT + REDRAWING ROADS PHASE
 		]]
@@ -796,15 +788,15 @@ RunService.Heartbeat:Connect(function()
 			if updatedSelectionPoint then
 				RoadPointHighlight.HighlightRoadPoints(
 					updatedSelectionPoint,
-					PointHighlightEnum.EndPointHighlight
+					PointHighlightEnums.EndPointHighlight
 				)
 			end
 			if updatedGoalPoint then
 				RoadPointHighlight.HighlightRoadPoints(
 					states.currentGoalPoint().goalPoint,
 					(isCastEndPoint == true or isCastEndPoint == nil)
-						and PointHighlightEnum.EndPointHighlight
-						or PointHighlightEnum.DependentPointHighlight
+						and PointHighlightEnums.EndPointHighlight
+						or PointHighlightEnums.DependentPointHighlight
 				)
 			end
 
@@ -814,7 +806,7 @@ RunService.Heartbeat:Connect(function()
 				RoadBuilderState.IsValidRoad(isVisualizedRoadValid)
 				RoadPointHighlight.HighlightRoadPoints(
 					visualizedRoadData.dependentRoadInstances.roadPoints, 
-					PointHighlightEnum.DependentPointHighlight
+					PointHighlightEnums.DependentPointHighlight
 				)
 			end
 		end

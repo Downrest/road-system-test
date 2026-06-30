@@ -3,6 +3,6 @@ export type DependentPoint = "DependentPoint"
 export type RoadPointCacheTypes = EndPoint | DependentPoint
 
 return {
-    EndPoint = "EndPoint";
-    DependentPoint = "DependentPoint";
+    EndPoint = "EndPoint":: EndPoint;
+    DependentPoint = "DependentPoint":: DependentPoint;
 }

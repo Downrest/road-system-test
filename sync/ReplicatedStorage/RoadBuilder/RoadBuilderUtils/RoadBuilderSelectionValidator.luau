@@ -5,7 +5,6 @@ local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConf
 local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
 local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadBuilderCurveUtils = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderCurveUtils)
-local create = require(ReplicatedStorage.SharedPackages.Vide.create)
 local MathGeneral = require(ReplicatedStorage.SharedUtils.MathUtils.MathGeneral)
 local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 
