@@ -1,13 +1,8 @@
-export type RoadPointVariant = "RoadPoint"
-export type RoadExtensionVariant = "RoadExtension"
-export type RoadVariantEnums = RoadPointVariant | RoadExtensionVariant
-
-type RoadVariantEnumsTable = {
-    RoadPoint: RoadPointVariant;
-    RoadExtension: RoadExtensionVariant;
-}
+export type RoadPoint = "RoadPoint"
+export type Road = "Road"
+export type RoadVariantEnums = RoadPoint | Road
 
 return {
-    RoadPoint = "RoadPoint";
-    RoadExtension = "RoadExtension";
-}:: RoadVariantEnumsTable
+	RoadPoint = "RoadPoint";
+	Road = "Road";
+}

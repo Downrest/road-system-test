@@ -219,8 +219,8 @@ function Cache.ListenOnceForVector3(vector3: Vector3, callback: (roadCache: Road
     signal:Once(function(roadCache: RoadCaches)
         callback(roadCache)
 
-        signal:Destroy()
         dataListeners[vector3] = nil
+        signal:Destroy()
     end)
 end
 

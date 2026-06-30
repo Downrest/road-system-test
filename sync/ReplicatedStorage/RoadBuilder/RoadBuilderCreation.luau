@@ -2,21 +2,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
---TODO: why is this unused?
 local RoadCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadCache)
 local RoadPointCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadPointCache)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
 local RoadCreationOutputData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadCreationOutputData)
 local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateTypeEnums)
-local RoadInstanceTagEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadInstanceTagEnums)
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
 local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
 local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.DefaultCreateType)
+local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.OverrideRoadConfig)
 local ExtensionConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.ExtensionConfigData)
+local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadPointCacheTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadPointCacheTypeEnums)
-local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
 local RoadBuilderCurveUtils = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderCurveUtils)
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local TableUtils = require(ReplicatedStorage.SharedUtils.TableUtils)
@@ -35,8 +34,6 @@ local ASSETS = {
 	};
 }
 local ROAD_ANGLE_CORRECTION = math.pi/2
---TODO: do something son
-local Z_FIGHTING_Y_OFFSET = .001
 
 local function applyCreateTypeProperties(
 	roadConfig: RoadConfigData.RoadConfigData,
@@ -50,8 +47,6 @@ local function applyCreateTypeProperties(
 			and roadConfig.createType.visualizedProperties.roadPoint
 			or roadConfig.createType.visualizedProperties.road
 	)
-
-	--warn(`MODIFIED {roadPart} of TAG {roadConfig.createType.tag}`, roadPart.CanQuery)
 end
 
 local function assertCreateDefaultTypeToServer(defaultCreateType: DefaultCreateType.DefaultCreateType): boolean
@@ -76,7 +71,7 @@ local function createRoadPoint(
 	roadAsset: BasePart, 
 	
 	roadConfig: RoadConfigData.RoadConfigData,
-	roadVariant: RoadVariantEnums.RoadVariantEnums,
+	createVariant: CreateVariantEnums.CreateVariantEnums,
 	parent: Instance, 
 	
 	toPointData: PointVector2Data.PointVector2Data,
@@ -102,13 +97,6 @@ local function createRoadPoint(
 	applyCreateTypeProperties(roadConfig, true, newRoadPoint)
 
 	ifCreateTypeDefault(roadConfig, function()
-		newRoadPoint:AddTag(RoadInstanceTagEnums.RoadPoint)
-		newRoadPoint:AddTag(
-			shouldBeCachedAsEndPoint
-				and RoadPointCacheTypeEnums.EndPoint
-				or RoadPointCacheTypeEnums.DependentPoint
-		)
-
 		RoadBuilderCache.SetRoadPointCache(
 			newRoadPoint, 
 			RoadPointCache(
@@ -127,7 +115,7 @@ local function createRoad(
 	roadAsset: BasePart, 
 
 	roadConfig: RoadConfigData.RoadConfigData,
-	roadVariant: RoadVariantEnums.RoadVariantEnums,
+	createVariant: CreateVariantEnums.CreateVariantEnums,
 	parent: Instance, 
 	
 	fromRoadData: PointVector2Data.PointVector2Data,
@@ -176,7 +164,7 @@ local function createRoadExtension(
 	roadAsset: BasePart,
 
 	roadConfig: RoadConfigData.RoadConfigData,
-	roadVariant: RoadVariantEnums.RoadVariantEnums,
+	createVariant: CreateVariantEnums.CreateVariantEnums,
 
 	fromExtenstionData: PointVector2Data.PointVector2Data,
 	toExtensionData: PointVector2Data.PointVector2Data,
@@ -207,7 +195,7 @@ local function createRoadExtension(
 		local originToGoalRoad = createRoad(
 			roadAsset, 
 			roadConfig,
-			roadVariant,
+			createVariant,
 			RoadCreationConfig.ROAD_PARENTS.road,
 			fromExtenstionData,
 			toExtensionData
@@ -224,7 +212,7 @@ local function createRoadExtension(
 			goalRoadPoint = createRoadPoint(
 				roadPointAsset,
 				roadConfig,
-				roadVariant,
+				createVariant,
 				RoadCreationConfig.ROAD_PARENTS.roadPoint,
 				toExtensionData,
 				fromExtenstionData,
@@ -238,7 +226,7 @@ local function createRoadExtension(
 
 			goalVector2Direction = newRoadToGoalDirection
 
-			goalRoadPointCache = RoadBuilderCache.RoadPointCacheList[goalRoadPoint]
+			goalRoadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint)
 			goalRoadPointCache.vector2Direction = newRoadToGoalDirection
 		end
 
@@ -281,37 +269,6 @@ local function createRoadExtension(
 				endPointCaches.goalRoadPointCache,
 				RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
 			)
-
-			-- local originRoadPointCache = RoadBuilderCache.GetRoadPointCache(extensionConfigData.originRoadPoint)
-			-- if originRoadPointCache then
-			-- 	for _, dependent in extensionConfigData.endPointDependents do
-			-- 		-- we expect `dependentRoads` to already exist as a table
-			-- 		table.insert(originRoadPointCache.dependentRoads, dependent)
-
-			-- 		local dependentRoadCache = RoadBuilderCache.GetRoadCache(dependent)
-			-- 		if dependentRoadCache then
-			-- 			table.insert(dependentRoadCache.dependeeRoadPoints, extensionConfigData.originRoadPoint)
-			-- 		end
-			-- 	end
-			-- 	table.insert(originRoadPointCache.dependentRoads, originToGoalRoad)
-
-			-- 	table.insert(originRoadPointCache.pairExtensionEndRoadPoints, goalRoadPoint)
-			-- end
-
-			-- if goalRoadPointCache then
-			-- 	for _, dependent in extensionConfigData.endPointDependents do
-			-- 		-- we expect `dependentRoads` to already exist as a table
-			-- 		table.insert(goalRoadPointCache.dependentRoads, dependent)
-
-			-- 		local dependentRoadCache = RoadBuilderCache.GetRoadCache(dependent)
-			-- 		if dependentRoadCache then
-			-- 			table.insert(dependentRoadCache.dependeeRoadPoints, extensionConfigData.originRoadPoint)
-			-- 		end
-			-- 	end
-			-- 	table.insert(goalRoadPointCache.dependentRoads, originToGoalRoad)
-
-			-- 	table.insert(goalRoadPointCache.pairExtensionEndRoadPoints, extensionConfigData.originRoadPoint)
-			-- end
 		end
 		
 		return goalRoadPoint, originToGoalRoad, goalVector2Direction
@@ -321,7 +278,7 @@ local function createRoadExtension(
 		local newRoadPoint = createRoadPoint(
 			roadPointAsset,
 			roadConfig,
-			roadVariant,
+			createVariant,
 			roadConfig.createType.parent,
 			toExtensionData,
 			fromExtenstionData
@@ -329,7 +286,7 @@ local function createRoadExtension(
 		local newRoad = createRoad(
 			roadAsset, 
 			roadConfig,
-			roadVariant,
+			createVariant,
 			roadConfig.createType.parent,
 			fromExtenstionData,
 			toExtensionData
@@ -339,6 +296,46 @@ local function createRoadExtension(
 	end
 end
 
+local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig)
+    if not overrideRoadConfig or not overrideRoadConfig.shouldOverride then
+        return
+    end
+
+    --[[
+        this refers to the `currentRemakeRoadCache.selectionRoadPoint.Position` from RoadBuilderClient.luau
+        ps. we're sending positions instead of instances to avoid issues from the client-server boundary
+    ]]
+    local previousRoadPoint = RoadBuilderCache.GetRoadInstanceFromVector3(overrideRoadConfig.overridenRoadPointPosition)
+    
+    local previousRoadPointCache = previousRoadPoint and RoadBuilderCache.GetRoadPointCache(previousRoadPoint)
+    if not previousRoadPointCache then
+        return
+    end
+    
+    -- override via Destroy()
+    previousRoadPoint:Destroy()
+    for _, dependentRoad in previousRoadPointCache.dependentRoads do
+        dependentRoad:Destroy()
+    end
+
+    for _, endPoint in previousRoadPointCache.pairExtensionEndRoadPoints do
+        local endPointCache = RoadBuilderCache.GetRoadPointCache(endPoint)
+        if not endPointCache then
+            continue
+        end
+
+        local previousIndexInCache = table.find(
+            endPointCache.pairExtensionEndRoadPoints,
+            previousRoadPoint
+        )
+        if previousIndexInCache then
+            table.remove(endPointCache.pairExtensionEndRoadPoints, previousIndexInCache)
+        end
+    end
+
+    RoadBuilderCache.ClearRoadPointCache(previousRoadPoint)
+end
+
 --// PUBLIC
 
 --[[
@@ -346,13 +343,16 @@ end
 
 	Vector3 Y Level defaults to `originVector2Data.yLevel`, but you can override with `overrideYLevel`
 ]]
---TODO: rename this to CreateOriginRoadPoint
-function Creation.CreateOriginRoad(
+function Creation.CreateOriginRoadPoint(
 	roadConfig: RoadConfigData.RoadConfigData,
 
 	originVector2Data: PointVector2Data.PointVector2Data,
 	shouldBeCachedAsEndPoint: boolean?
 ): RoadCreationOutputData.RoadCreationOutputData
+	
+	-- if applicable
+	overridePreviousRoad(roadConfig.overrideRoadConfig)
+
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
 	local isCreateTypeDefault = assertCreateDefaultTypeToServer(createType)
@@ -362,7 +362,7 @@ function Creation.CreateOriginRoad(
 	local newRoadPoint = createRoadPoint(
 		ROAD_POINT_ASSET,
 		roadConfig,
-		RoadVariantEnums.RoadPoint,
+		CreateVariantEnums.RoadPoint,
 		isCreateTypeDefault
 			and RoadCreationConfig.ROAD_PARENTS.roadPoint
 			or roadConfig.createType.parent,
@@ -370,10 +370,6 @@ function Creation.CreateOriginRoad(
 		nil, 
 		shouldBeCachedAsEndPoint
 	)
-
-	-- if isCreateTypeDefault then
-	-- 	RoadBuilderCache.SendBatchedReplicationCache()
-	-- end
 	
 	return RoadCreationOutputData(
 		newRoadPoint,
@@ -392,6 +388,9 @@ function Creation.CreateExtensionRoad(
 	originVector2Data: PointVector2Data.PointVector2Data, 
 	goalVector2Data: PointVector2Data.PointVector2Data
 ): RoadCreationOutputData.RoadCreationOutputData
+	-- if applicable
+	overridePreviousRoad(roadConfig.overrideRoadConfig) 
+
 	local originVector2DataWithDir = RoadCreationConfig.ApplyDefaultDirectionToVector2Data(originVector2Data)
 
 	local roadType = roadConfig.roadType
@@ -402,8 +401,6 @@ function Creation.CreateExtensionRoad(
 	local originDirection = originVector2DataWithDir.direction
 	local originYLevel = originVector2DataWithDir.yLevel
 
-	--TODO: LOWKEY IM PRETTY SURE MOST OF THEM MANUALLY INDEX and not use the functions
-	-- WHEN ITS NOT SUPER NECESSARY, just double check
 	local originRoadPoint: BasePart? = RoadBuilderCache.GetRoadInstanceFromVector3(
 		VectorUtils.Vector3FromVector2AndY(originPosition, originYLevel)
 	)
@@ -458,7 +455,7 @@ function Creation.CreateExtensionRoad(
 			ROAD_ASSET,
 
 			roadConfig,
-			RoadVariantEnums.RoadExtension,
+			CreateVariantEnums.RoadExtension,
 
 			PointVector2Data(
 				previousRoadPointPosition, 
@@ -486,7 +483,7 @@ function Creation.CreateExtensionRoad(
 		ROAD_ASSET,
 
 		roadConfig,
-		RoadVariantEnums.RoadExtension,
+		CreateVariantEnums.RoadExtension,
 
 		PointVector2Data(previousRoadPointPosition, nil, previousRoadPointYLevel),
 		PointVector2Data(goalPosition, nil, goalYLevel),

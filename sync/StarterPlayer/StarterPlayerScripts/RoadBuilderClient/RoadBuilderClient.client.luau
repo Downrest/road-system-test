@@ -4,10 +4,12 @@ local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
+local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
 local RoadPointCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadPointCache)
 local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
 local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.OverrideRoadConfig)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
+local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadPointCacheTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadPointCacheTypeEnums)
 local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
 local MouseUtils = require(StarterPlayer.StarterPlayerScripts.ClientUtils.MouseUtils)
@@ -15,7 +17,6 @@ local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvent
 local RoadBuilderSelectionValidator = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderSelectionValidator)
 local Janitor = require(ReplicatedStorage.SharedPackages.Janitor)
 local Vide = require(ReplicatedStorage.SharedPackages.Vide)
-local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 local InputManager = require(StarterPlayer.StarterPlayerScripts.Inputs.InputManager)
 local RoadVisualizationConfig = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderConfig.RoadVisualizationConfig)
@@ -36,7 +37,14 @@ type RemakeState = {
 }
 type RemakeRoadData = {
 	roadInstance: BasePart;
+	roadVariant: RoadVariantEnums.RoadVariantEnums;
 	roadColor: Color3;
+}
+type RemakeEndPointData = {
+	creationDirection: Vector2;
+
+	curvingToGoalDirection: Vector2;
+	validityDirection: Vector2;
 }
 
 local SELECTION_GUI, SELECTION_GUI_SIGNALS, SELECTION_GUI_DESTRUCTOR = RoadBuilderSelectionPrompt.CreateSelectionPrompt()
@@ -75,11 +83,8 @@ local currentRemakeRoadCache = {
 	]]
 	selectionRoadPoint = nil:: BasePart?;
 	dependentRoads = {}:: {RemakeRoadData?};
-	endRoadPoints = {}:: {
-		[BasePart]: {
-			direction: Vector2
-		};
-	};
+	nRoads = 0:: number;
+	endRoadPoints = {}:: RemakeEndPointData;
 }
 
 local function newRoadPointOnMouse(positionBackup: Vector3?): (BasePart, () -> ())
@@ -137,6 +142,7 @@ local function resetRemakeRoadCache()
 	table.clear(currentRemakeRoadCache.dependentRoads)
 	table.clear(currentRemakeRoadCache.endRoadPoints)
 	currentRemakeRoadCache.selectionRoadPoint = nil
+	currentRemakeRoadCache.nRoads = 0
 
 	resetRemakeState()
 end
@@ -158,6 +164,7 @@ local function cacheRemakeRoads(capturedStates: RoadBuilderState.CapturedStates)
 	for _, roadInstance in goalDependentRoads do
 		table.insert(currentRemakeRoadCache.dependentRoads, {
 			roadInstance = roadInstance;
+			roadVariant = RoadVariantEnums.Road;
 			roadColor = roadInstance.Color;
 		})
 	end
@@ -167,7 +174,6 @@ local function cacheRemakeRoads(capturedStates: RoadBuilderState.CapturedStates)
 
 	-- loop through road points, and ensure that direction data is reflected for visualization accuracy
 	for _, endRoadPoint in goalPointCache.pairExtensionEndRoadPoints do
-		-- local endRoadPointCache: RoadPointCache.RoadPointCache = RoadBuilderEvents.RequestRoadData:InvokeServer(endRoadPoint.Position)
 		local endRoadPointCache: RoadPointCache.RoadPointCache = RoadBuilderCache.GetRoadDataFromVector3(endRoadPoint.Position)
 		if not endRoadPointCache then
 			continue
@@ -175,11 +181,14 @@ local function cacheRemakeRoads(capturedStates: RoadBuilderState.CapturedStates)
 
 		local endRoadPointPosition2D = VectorUtils.Vector2FromVector3(endRoadPoint.Position)
 		local endToGoalDirection = (endRoadPointPosition2D - goalPointPosition2D).Unit
-		local perpendicularDirection = Vector2.new(endToGoalDirection.Y, -endToGoalDirection.X)
+		local curvingToGoalDirection = Vector2.new(endToGoalDirection.Y, -endToGoalDirection.X)
 		
 		currentRemakeRoadCache.endRoadPoints[endRoadPoint] = {
-			direction = perpendicularDirection;
+			creationDirection = endRoadPointCache.vector2Direction;
+			curvingToGoalDirection = curvingToGoalDirection;
+			validityDirection = endToGoalDirection;
 		}
+		currentRemakeRoadCache.nRoads += 1
 	end
 end
 
@@ -192,18 +201,28 @@ local function toggleRemakeRoadsCache(isVisible: boolean)
 	for _, remakeRoadData in currentRemakeRoadCache.dependentRoads do
 		if isVisible then
 			remakeRoadData.roadInstance.Color = remakeRoadData.roadColor
-			--TODO: probably should be an interface within RoadVisualization 100%
-			PropertiesUtils.ApplyProperties(
+
+			RoadBuilderVisualization.ApplyVisualizeCreateTypeProperties(
 				remakeRoadData.roadInstance,
-				RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.default().visualizedProperties.road
+				remakeRoadData.roadVariant,
+				RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.default()
 			)
 		else
-			PropertiesUtils.ApplyProperties(
+			RoadBuilderVisualization.ApplyVisualizeCreateTypeProperties(
 				remakeRoadData.roadInstance,
-				RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.remake.visualizedProperties.road
+				remakeRoadData.roadVariant,
+				RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.remake
 			)
 		end
 	end
+end
+
+local function getAppropriateEndPointDirection(endData: RemakeEndPointData): Vector2
+	local isSingleRoad = (currentRemakeRoadCache.nRoads == 1)
+
+	return isSingleRoad 
+		and endData.creationDirection
+		or endData.curvingToGoalDirection
 end
 
 --[[
@@ -216,18 +235,28 @@ local function visualizeRemakeRoad(capturedStates: RoadBuilderState.CapturedStat
 	for endRoadPoint, endData in currentRemakeRoadCache.endRoadPoints do
 		local createRoadConfig = CreateRoadConfig(
 			capturedStates.currentRoadType,
-			RoadVariantEnums.RoadExtension,
+			CreateVariantEnums.RoadExtension,
 			nil, 
 
-			PointVector2Data(
-				endRoadPoint.Position, 
-				endData.direction
-			),
+			nil, -- to be set
 			PointVector2Data(states.currentGoalPoint().goalPoint.Position)
 		)
 
-		local isValid = RoadBuilderSelectionValidator.ValidateRoadRequest(createRoadConfig, true)
+		-- validity check
 
+		createRoadConfig.fromPositionVector2Data = PointVector2Data(
+			endRoadPoint.Position, 
+			endData.validityDirection or RoadCreationConfig.DEFAULT_ROAD_POINT_AXIS
+		)
+		local isValid = RoadBuilderSelectionValidator.ValidateRoadRequest(
+			createRoadConfig, 
+			currentRemakeRoadCache.selectionRoadPoint.Position
+		)
+
+		createRoadConfig.fromPositionVector2Data = PointVector2Data(
+			endRoadPoint.Position, 
+			getAppropriateEndPointDirection(endData)
+		)
 		RoadBuilderVisualization.VisualizeRoadExtension(
 			createRoadConfig.roadType,
 			isValid
@@ -252,7 +281,7 @@ end
 local function visualizeStandardRoad(capturedStates: RoadBuilderState.CapturedStates): (boolean, RoadExtensionVisualData.RoadExtensionVisualData)
 	local createRoadConfig = CreateRoadConfig(
 		capturedStates.currentRoadType,
-		RoadVariantEnums.RoadExtension,
+		CreateVariantEnums.RoadExtension,
 		nil, 
 
 		PointVector2Data(
@@ -302,11 +331,17 @@ local function refreshCapturedStates(capturedStates: RoadBuilderState.CapturedSt
 end
 
 local function exitFinalizedSelection()
+	onPressJanitor:Cleanup()
+
 	-- undo any "remake movement"
 	toggleRemakeRoadsCache(true)
-	
-	onPressJanitor:Cleanup()
 	resetRemakeRoadCache()
+
+	-- -- to reset error alerts
+	RoadBuilderErrorAlert.ClearErrorAlerts()
+
+	-- to reset selection prompt
+	RoadBuilderSelectionPrompt.ToggleValidRoadSelection(SELECTION_GUI, true)
 	toggleFinalizedSelectionGui(false)
 	
 	RoadBuilderState.SetMovingSelection(
@@ -332,7 +367,6 @@ InputManager.OnPress:Connect(function()
 		onPressDebounce
 		or not capturedStates.isInBuildMenu
 		or not capturedStates.currentGoalPoint.goalPoint
-		or not capturedStates.isValidRoad
 	then
 		return
 	end
@@ -344,8 +378,6 @@ InputManager.OnPress:Connect(function()
 
 	onPressDebounce = true
 
-	-- just toggle this to remove any error/invalid alerts
-	states.isValidRoad(true)
 	-- enable selection state, pauses resimulation of clientside roads (sent to the server)
 	states.isPromptedSelection(true)
 
@@ -475,7 +507,7 @@ InputManager.OnPress:Connect(function()
 				requestRoadCreation(
 					CreateRoadConfig(
 						capturedStates.currentRoadType,
-						RoadVariantEnums.RoadExtension,
+						CreateVariantEnums.RoadExtension,
 						nil,
 						
 						PointVector2Data(
@@ -502,7 +534,7 @@ InputManager.OnPress:Connect(function()
 					requestRoadCreation(
 						CreateRoadConfig(
 							capturedStates.currentRoadType,
-							RoadVariantEnums.RoadExtension,
+							CreateVariantEnums.RoadExtension,
 							OverrideRoadConfig(
 								true,
 								currentRemakeRoadCache.selectionRoadPoint.Position
@@ -510,7 +542,7 @@ InputManager.OnPress:Connect(function()
 
 							PointVector2Data(
 								endRoadPoint.Position, 
-								endData.direction
+								getAppropriateEndPointDirection(endData)
 							),
 							PointVector2Data(capturedStates.currentGoalPoint.goalPoint.Position)
 						)
@@ -525,7 +557,7 @@ InputManager.OnPress:Connect(function()
 					requestRoadCreation(
 						CreateRoadConfig(
 							capturedStates.currentRoadType,
-							RoadVariantEnums.RoadPoint,
+							CreateVariantEnums.RoadPoint,
 							nil,
 
 							PointVector2Data(capturedStates.currentGoalPoint.goalPoint.Position)
@@ -551,7 +583,6 @@ InputManager.OnPress:Connect(function()
 		end
 
 		exitFinalizedSelection()
-		states.isValidRoad(true)
 	end))
 
 	-- when clicking the "undo button"
@@ -560,7 +591,6 @@ InputManager.OnPress:Connect(function()
 		RoadBuilderState.SetCurrentSelectionPoint(nil)
 
 		exitFinalizedSelection()
-		states.isValidRoad(true)
 	end))
 end)
 
@@ -598,20 +628,17 @@ RoadBuilderState.ScopeState(function()
 	-- error alert
 	Vide.effect(function()
 		local capturedStates = RoadBuilderState.CaptureStates()
+		-- states.isPromptedSelection() -- track
 
 		if states.isValidRoad() then
 			RoadBuilderErrorAlert.ClearErrorAlerts()
+			RoadBuilderSelectionPrompt.ToggleValidRoadSelection(SELECTION_GUI, true)
 		else
 			RoadBuilderErrorAlert.CreateErrorAlert(capturedStates.currentGoalPoint.goalPoint)
+			RoadBuilderSelectionPrompt.ToggleValidRoadSelection(SELECTION_GUI, false)
 		end
 	end)
 end)
-
--- whenever a new road is built on the server, this is fired back to the client for road visualization "correction"
---TODO: err maybe remove the boolean here?
--- RoadBuilderEvents.CreateRoadRequest.OnClientEvent:Connect(function(boolean, direction)
--- 	RoadBuilderState.SetCurrentSelectionDirection(direction)
--- end)
 
 local function handleRenderThrottling(capturedStates: RoadBuilderState.CapturedStates)
 	-- incase no road is being rendered
@@ -718,8 +745,9 @@ RunService.Heartbeat:Connect(function()
 				local castGoalPosition = isSelectingExistingRoad
 					and castData.mouseCastInstance.Position
 					or castData.mouseCastPosition
+				local castPointCache = RoadBuilderCache.GetRoadPointCache(castData.mouseCastInstance)
 				isCastEndPoint = isSelectingExistingRoad
-					and castData.mouseCastInstance:HasTag(RoadPointCacheTypeEnums.EndPoint)
+					and castPointCache.roadPointCacheType == RoadPointCacheTypeEnums.EndPoint
 
 				-- normal move-to-cursor, examples of `overrideMovementPosition` is vertical movement
 				goalPointToPosition = castGoalPosition
@@ -730,13 +758,13 @@ RunService.Heartbeat:Connect(function()
 			end
 		end
 
-		--[[
-			SELECTION PROMPT
-		]]
+		-- --[[
+		-- 	SELECTION PROMPT
+		-- ]]
 
-		if SELECTION_GUI.gui.Enabled then
-			RoadBuilderSelectionPrompt.ToggleValidRoadSelection(SELECTION_GUI, capturedStates.isValidRoad)
-		end
+		-- if SELECTION_GUI.gui.Enabled then
+		-- 	RoadBuilderSelectionPrompt.ToggleValidRoadSelection(SELECTION_GUI, capturedStates.isValidRoad)
+		-- end
 
 		--[[
 			POSITIONING GOALPOINT + REDRAWING ROADS PHASE

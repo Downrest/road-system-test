@@ -5,22 +5,22 @@ local VisualizerClass = require(StarterPlayer.StarterPlayerScripts.ClientClasses
 local RoadVisualizationConfig = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderConfig.RoadVisualizationConfig)
 local RoadExtensionVisualData = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderDataWrappers.VisualizationWrappers.RoadExtensionVisualData)
 local RoadPointVisualData = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderDataWrappers.VisualizationWrappers.RoadPointVisualData)
-local PointHighlightEnum = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderEnums.PointHighlightEnum)
 local RoadModelHighlight = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderUtils.RoadBuilderInstanceHighlights.RoadModelHighlight)
-local RoadPointHighlight = require(StarterPlayer.StarterPlayerScripts.RoadBuilderClient.RoadBuilderUtils.RoadBuilderInstanceHighlights.RoadPointHighlight)
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
 local VisualizeCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.VisualizeCreateType)
+local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
+local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 
 export type RoadPointCache = {
-    roadVariant: RoadVariantEnums.RoadVariantEnums;
+    createVariant: CreateVariantEnums.CreateVariantEnums;
     destructor: () -> ();
 }
 export type RoadExtensionCache = {
-    roadVariant: RoadVariantEnums.RoadVariantEnums;
+    createVariant: CreateVariantEnums.CreateVariantEnums;
     endRoadPointVector2Data: PointVector2Data.PointVector2Data;
     destructor: () -> ();
 }
@@ -31,6 +31,19 @@ VisualizerClass.inherit(Visualization)
 
 function Visualization.ClearVisualizedRoads(whitelistedInstances: Instance | {Instance})
     return Visualization:ClearVisualizedCache(whitelistedInstances)
+end
+
+function Visualization.ApplyVisualizeCreateTypeProperties(
+    roadInstance: BasePart,
+    createVariant: RoadVariantEnums.RoadVariantEnums,
+    visualizeCreateType: VisualizeCreateType.VisualizeCreateType
+)
+    PropertiesUtils.ApplyProperties(
+        roadInstance,
+        createVariant == RoadVariantEnums.RoadPoint
+            and visualizeCreateType.visualizedProperties.roadPoint
+            or visualizeCreateType.visualizedProperties.road
+    )
 end
 
 --[[
@@ -46,20 +59,17 @@ function Visualization.VisualizeRoadPoint(
 
     avoidCaching: boolean?
 ): RoadPointVisualData.RoadPointVisualData
-    local originRoadOutput = RoadBuilderCreation.CreateOriginRoad(
+    visualizeCreateType.parent = RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
+
+    local originRoadOutput = RoadBuilderCreation.CreateOriginRoadPoint(
         RoadConfigData(
             roadType,
-            visualizeCreateType,
-            RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
+            visualizeCreateType
         ),
 
         originVector2Data
     )
     local originRoadPointInstance = originRoadOutput.endRoadPointInstance
-
-    -- if shouldHighlight then
-    --     RoadPointHighlight.HighlightRoadPoints(originRoadPointInstance, PointHighlightEnum.EndPointHighlight)
-    -- end
 
     local function destructor()
 		originRoadPointInstance:Destroy()
@@ -70,7 +80,7 @@ function Visualization.VisualizeRoadPoint(
         Visualization:CacheInstancesWithData(
             originRoadPointInstance,
             {
-                roadVariant = RoadVariantEnums.RoadPoint;
+                createVariant = CreateVariantEnums.RoadPoint;
                 destructor = destructor;
             }
         )
@@ -96,13 +106,14 @@ function Visualization.VisualizeRoadExtension(
     
     avoidCaching: boolean?
 ): RoadExtensionVisualData.RoadExtensionVisualData
-    local originRoadPointOutput = RoadBuilderCreation.CreateOriginRoad(
+    visualizeCreateType.parent = RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
+
+    local originRoadPointOutput = RoadBuilderCreation.CreateOriginRoadPoint(
         RoadConfigData(
             roadType,
             VisualizeCreateType(
                 visualizeCreateType.visualizedProperties.road,
-                visualizeCreateType.visualizedProperties.roadPoint,
-                RoadVisualizationConfig.VISUALIZATION_ASSET_CONTAINER
+                visualizeCreateType.visualizedProperties.roadPoint
             )
         ),
 
@@ -149,7 +160,7 @@ function Visualization.VisualizeRoadExtension(
             {endRoadPointInstance},
             {
                 endRoadPointVector2Data = endRoadPointVector2Data;
-                roadVariant = RoadVariantEnums.RoadExtension;
+                createVariant = CreateVariantEnums.RoadExtension;
                 destructor = destructor;
             }
         )

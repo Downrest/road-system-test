@@ -1,12 +1,13 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
 local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
-local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
-local RoadInstanceTagEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadInstanceTagEnums)
-local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
+local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadBuilderCurveUtils = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderCurveUtils)
+local create = require(ReplicatedStorage.SharedPackages.Vide.create)
 local MathGeneral = require(ReplicatedStorage.SharedUtils.MathUtils.MathGeneral)
+local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
 
 local SelectionValidator = {}
 
@@ -16,27 +17,21 @@ local SelectionValidator = {}
 	Maximum angle defaults to `CURVE_ANGLE_MAXIMUM`, but you can override with `overrideMaximumAngle`.
 ]]
 local function validateCurveAngle(
-	originVector2Data: PointVector2Data.PointVector2Data,
-	goalVector2Data: PointVector2Data.PointVector2Data,
-	isRemake: boolean?
+	roadConfig: CreateRoadConfig.CreateRoadConfig,
+	remakeGoalPosition: Vector3?
 ): boolean
-	originVector2Data = RoadCreationConfig.ApplyDefaultDirectionToVector2Data(originVector2Data)
+	local remakeGoalPositionVector2 = remakeGoalPosition and VectorUtils.Vector2FromVector3(remakeGoalPosition)
 
+	local originVector2Data, isDefaultDirection = RoadCreationConfig.ApplyDefaultDirectionToVector2Data(
+		roadConfig.fromPositionVector2Data
+	)
 	local originPosition = originVector2Data.position
-	local originDirection = originVector2Data.direction
+	local originDirection = remakeGoalPositionVector2
+		and (remakeGoalPositionVector2 - originPosition).Unit 
+		or originVector2Data.direction
 
+	local goalVector2Data = roadConfig.toPositionVector2Data
 	local goalPosition = goalVector2Data.position
-
-	local dotSign = 1
-	--[[
-		reverse the originDirection if
-			`isRemake` is true
-			`originToGoalDirection` is on the opposite side
-	]]
-	if isRemake then
-		local originToGoalDirection = originDirection:Dot((goalPosition - originPosition).Unit)
-		dotSign = math.sign(originToGoalDirection)
-	end
 
 	local originToGoalDistance = (originPosition - goalPosition).Magnitude
 	local curveFrequency = RoadCreationConfig.ROAD_CURVE_FREQUENCY_PER_N_STUDS.frequency * (originToGoalDistance / RoadCreationConfig.ROAD_CURVE_FREQUENCY_PER_N_STUDS.nStuds)
@@ -50,30 +45,31 @@ local function validateCurveAngle(
 	).get((1/curveFrequency))
 	local curveDirection = (curvePosition - originPosition).Unit
 
-	local originToCurveDotAngle = MathGeneral.DotAngleBetween(originDirection * dotSign, curveDirection)
+	local originToCurveDotAngle = MathGeneral.DotAngleBetween(originDirection, curveDirection)
 
 	return (originToCurveDotAngle <= maximumCurveAngle)
 end
 
-function SelectionValidator.IsValidRoadPoint(instance: BasePart): boolean
-    return instance and instance:HasTag(RoadInstanceTagEnums.RoadPoint) or false
+function SelectionValidator.IsValidRoadPoint(roadPoint: BasePart): boolean
+    return (RoadBuilderCache.GetRoadPointCache(roadPoint) ~= nil)
 end
 
 function SelectionValidator.ValidateRoadRequest(
 	createRoadConfig: CreateRoadConfig.CreateRoadConfig,
-	isRemake: boolean?
+	remakeGoalPosition: Vector3? -- implies that its a remake
 ): boolean
     local wasVerified = true
 
     if RoadCreationConfig.ROAD_VALIDATION_RULES.isRoadAngleLimited then
         if 
-            createRoadConfig.roadVariant == RoadVariantEnums.RoadExtension
-			and createRoadConfig.fromPositionVector2Data.direction
+            createRoadConfig.createVariant == CreateVariantEnums.RoadExtension
+			--[[
+				direction is equal to either nil or `DEFAULT_ROAD_POINT_AXIS` for "precusor" roadpoints
+			]]
 			and createRoadConfig.fromPositionVector2Data.direction ~= RoadCreationConfig.DEFAULT_ROAD_POINT_AXIS
             and not validateCurveAngle(
-                createRoadConfig.fromPositionVector2Data,
-                createRoadConfig.toPositionVector2Data,
-				isRemake
+                createRoadConfig,
+				remakeGoalPosition
             )
         then
 			wasVerified = false

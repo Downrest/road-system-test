@@ -1,13 +1,13 @@
---TODO: rename this to CreateRoadRequest, not to confuse with RoadConfigData
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.OverrideRoadConfig)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
+local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
+local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 
 export type CreateRoadConfig = {
-    roadType: string;
-    roadVariant: string;
+    roadType: RoadTypeEnums.RoadTypeEnums;
+    createVariant: CreateVariantEnums.CreateVariantEnums;
     overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig;
     
     fromPositionVector2Data: PointVector2Data.PointVector2Data;
@@ -15,18 +15,17 @@ export type CreateRoadConfig = {
 }
 
 return function(
-    roadType: string,
-    roadVariant: string,
+    roadType: RoadTypeEnums.RoadTypeEnums,
+    createVariant: CreateVariantEnums.CreateVariantEnums,
     overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig,
 
     fromPositionVector2Data: PointVector2Data.PointVector2Data,
     toPositionVector2Data: PointVector2Data.PointVector2Data?
 ): CreateRoadConfig
-    --warn(fromPositionVector2Data.direction)
     
     return {
         roadType = roadType;
-        roadVariant = roadVariant;
+        createVariant = createVariant;
         overrideRoadConfig = overrideRoadConfig;
         
         fromPositionVector2Data = fromPositionVector2Data;

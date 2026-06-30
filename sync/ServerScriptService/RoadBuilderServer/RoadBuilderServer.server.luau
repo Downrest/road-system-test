@@ -5,19 +5,17 @@ local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
 local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
 local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.DefaultCreateType)
-local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.OverrideRoadConfig)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
-local RoadCreationOutputData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadCreationOutputData)
-local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
+local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
 
-local function assertRoadVariant(
-    roadVariant: string,
+local function assertCreateVariant(
+    createVariant: string,
     fromPositionVector2Data: PointVector2Data.PointVector2Data,
     toPositionVector2Data: PointVector2Data.PointVector2Data?
 )
-    if roadVariant == RoadVariantEnums.RoadPoint then
+    if createVariant == CreateVariantEnums.RoadPoint then
         assert(
             fromPositionVector2Data and not toPositionVector2Data,
             "Road variant is RoadPoint, yet either `fromPosition` is nil or `toPosition` incorrectly exists"
@@ -30,53 +28,9 @@ local function assertRoadVariant(
     end
 end
 
---TODO: MOVE TO ROADBUILDERCREATION
-local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig)
-    if not overrideRoadConfig or not overrideRoadConfig.shouldOverride then
-        return
-    end
-
-    --[[
-        this refers to the `currentRemakeRoadCache.selectionRoadPoint.Position` from RoadBuilderClient.luau
-        ps. we're sending positions instead of instances to avoid issues from the client-server boundary
-    ]]
-    local previousRoadPoint = RoadBuilderCache.Vector3ToRoadInstanceCacheList[overrideRoadConfig.overridenRoadPointPosition]
-    
-    local previousRoadPointCache = previousRoadPoint and RoadBuilderCache.RoadPointCacheList[previousRoadPoint]
-    if not previousRoadPointCache then
-        return
-    end
-
-    warn(`OVERRIDDEN!: {previousRoadPoint.Position}`)
-    
-    -- override via Destroy()
-    previousRoadPoint:Destroy()
-    for _, dependentRoad in previousRoadPointCache.dependentRoads do
-        dependentRoad:Destroy()
-    end
-
-    for _, endPoint in previousRoadPointCache.pairExtensionEndRoadPoints do
-        local endPointCache = RoadBuilderCache.RoadPointCacheList[endPoint]
-        if not endPointCache then
-            continue
-        end
-
-        local previousIndexInCache = table.find(
-            endPointCache.pairExtensionEndRoadPoints,
-            previousRoadPoint
-        )
-        if previousIndexInCache then
-            table.remove(endPointCache.pairExtensionEndRoadPoints, previousIndexInCache)
-        end
-    end
-
-    RoadBuilderCache.ClearRoadPointCache(previousRoadPoint)
-end
-
 --[[
-    load player state for road building system
+    load existing road cache to new players
 ]]
---TODO: UHH NOT SURE IF UR GONNA STILL KEEP THIS LOL
 Players.PlayerAdded:Connect(function(player)
     RoadBuilderCache.SendAllReplicationCache(player)
 end)
@@ -94,24 +48,23 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
     createRoadConfig: CreateRoadConfig.CreateRoadConfig
 )
     local roadType = createRoadConfig.roadType
-    local roadVariant = createRoadConfig.roadVariant
+    local createVariant = createRoadConfig.createVariant
     local overrideRoadConfig = createRoadConfig.overrideRoadConfig
     local fromPositionVector2Data = createRoadConfig.fromPositionVector2Data
     local toPositionVector2Data = createRoadConfig.toPositionVector2Data
 
-    assertRoadVariant(roadVariant, fromPositionVector2Data, toPositionVector2Data)
+    assertCreateVariant(createVariant, fromPositionVector2Data, toPositionVector2Data)
 
     -- clear previous road (if applicable)
-    overridePreviousRoad(overrideRoadConfig)
-
-    local roadOutput: RoadCreationOutputData.RoadCreationOutputData
+    -- overridePreviousRoad(overrideRoadConfig)
 
     -- step 0: create origin road
-    if roadVariant == RoadVariantEnums.RoadPoint then
-        roadOutput = RoadBuilderCreation.CreateOriginRoad(
+    if createVariant == CreateVariantEnums.RoadPoint then
+        RoadBuilderCreation.CreateOriginRoadPoint(
             RoadConfigData(
                 roadType, 
-                DefaultCreateType()
+                DefaultCreateType(),
+                overrideRoadConfig
             ),
 
             fromPositionVector2Data,
@@ -120,21 +73,15 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
 
     -- step 1: extend from origin road
 	else
-        roadOutput = RoadBuilderCreation.CreateExtensionRoad(
+        RoadBuilderCreation.CreateExtensionRoad(
             RoadConfigData(
                 roadType, 
-                DefaultCreateType()
+                DefaultCreateType(),
+                overrideRoadConfig
             ),
 
             fromPositionVector2Data, 
             toPositionVector2Data
         )
 	end
-
-    -- toggles client's road visualization (either success or failure to create road)
-	RoadBuilderEvents.CreateRoadRequest:FireClient(
-		player, 
-		true, 
-		roadOutput.endRoadPointVector2Data.direction
-	)
 end)

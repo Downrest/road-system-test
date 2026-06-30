@@ -31,7 +31,6 @@ local Config = {
 	};
 	DEFAULT_ROAD_POINT_AXIS = Vector2.xAxis;
 
-	--TODO: UHHH THIS CHANGE ISNT REFLECTED ON SOME CODE YET
 	ROAD_PARENTS = {
 		roadPoint = roadPointFolder;
 		road = roadFolder;
@@ -49,16 +48,17 @@ local Config = {
 	};
 }
 
-function Config.ApplyDefaultDirectionToVector2Data(pointVector2Data: PointVector2Data.PointVector2Data): PointVector2Data.PointVector2Data
-	if not pointVector2Data or pointVector2Data.direction then
-		return pointVector2Data
+function Config.ApplyDefaultDirectionToVector2Data(pointVector2Data: PointVector2Data.PointVector2Data): (PointVector2Data.PointVector2Data, boolean)
+	assert(pointVector2Data, "Attempted to apply default direction to nil `pointVector2Data`")
+	if pointVector2Data.direction then
+		return pointVector2Data, false
 	end
 
 	-- localizing the avoid any overwrites with the passed PointVector2Data
 	local pointVector2DataWithDir = table.clone(pointVector2Data)
 	pointVector2DataWithDir.direction = Config.DEFAULT_ROAD_POINT_AXIS
 	
-	return pointVector2DataWithDir
+	return pointVector2DataWithDir, true
 end
 
 return Config
