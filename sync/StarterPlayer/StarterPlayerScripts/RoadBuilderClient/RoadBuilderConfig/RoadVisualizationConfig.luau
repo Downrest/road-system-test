@@ -20,7 +20,7 @@ local function newHighlightColorProperties(
 end
 
 return {
-    HIGHLIGHT_ROAD_POINT_LIMIT = 30;
+    HIGHLIGHT_ROAD_POINT_LIMIT = 150;
 
     HIGHLIGHT_ROAD_COLORS = {
         default = newHighlightColorProperties(
@@ -31,14 +31,6 @@ return {
         );
     };
     HIGHLIGHT_ROAD_POINT_COLORS = {
-        default = newHighlightColorProperties(
-            Color3.new(0, 1, 0),
-            .85,
-            Color3.new(0, 1, 0),
-            0
-        );
-    };
-    HIGHLIGHT_FOCUS_COLORS = {
         dependentPoint = newHighlightColorProperties(
             Color3.new(0.831373, 1, 0),
             .75,
@@ -119,7 +111,10 @@ return {
     };
 
     RENDER_THROTTLE_PER_ROAD_DISTANCE = {
-        throttleSeconds = .05;
-        roadverticalDistance = 600;
+        throttleSeconds = .5;
+        roadDistance = 2000;
     };
+
+    -- multiplier for vertical remake, just there to make it feel better
+    VERTICAL_REMAKE_MULTIPLIER = 2;
 }

@@ -63,7 +63,7 @@ function SelectionValidator.ValidateRoadRequest(
 	createRoadConfig: CreateRoadConfig.CreateRoadConfig,
 	isRemake: boolean?
 ): boolean
-    local wasVerified = false
+    local wasVerified = true
 
     if RoadCreationConfig.ROAD_VALIDATION_RULES.isRoadAngleLimited then
         if 

@@ -1,5 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local TableUtils = require(ReplicatedStorage.SharedUtils.TableUtils)
+
 local PropertiesUtils = {}
 
 local function property(object: Instance, propertiesTable: {[string]: any})
@@ -13,9 +15,7 @@ function PropertiesUtils.ApplyProperties(objects: Instance | {Instance}, propert
     assert(objects, "No `objects` supplied for properties?")
     assert(propertiesTable, "No `propertiesTable` supplied for properties?")
 
-    if typeof(objects) ~= "table" then
-        objects = {objects}
-    end
+    objects = TableUtils.EnsureTable(objects)
 
     for _, traversedObject: Instance in objects do
         property(traversedObject, propertiesTable)

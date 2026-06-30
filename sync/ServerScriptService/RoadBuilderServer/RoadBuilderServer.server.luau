@@ -1,10 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
-local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
-local RoadBuilderPlayerState = require(ServerScriptService.RoadBuilderServer.RoadBuilderPlayerState)
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
 local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
 local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.DefaultCreateType)
@@ -14,16 +11,6 @@ local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrap
 local RoadCreationOutputData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadCreationOutputData)
 local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
 local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
-
---[[
-    load player state for road building system
-]]
---TODO: UHH NOT SURE IF UR GONNA STILL KEEP THIS LOL
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        RoadBuilderPlayerState.NewPlayerState(player)
-    end)
-end)
 
 local function assertRoadVariant(
     roadVariant: string,
@@ -43,11 +30,7 @@ local function assertRoadVariant(
     end
 end
 
---  RoadBuilderEvents.RequestRoadData.OnServerInvoke = function(_, roadPointPosition: Vector3)
---      --TODO: make these use the function lol
---  	return RoadBuilderCache.RoadPointCacheList[RoadBuilderCache.Vector3ToRoadInstanceCacheList[roadPointPosition]]
---  end
-
+--TODO: MOVE TO ROADBUILDERCREATION
 local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig)
     if not overrideRoadConfig or not overrideRoadConfig.shouldOverride then
         return
@@ -89,6 +72,14 @@ local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.Overr
 
     RoadBuilderCache.ClearRoadPointCache(previousRoadPoint)
 end
+
+--[[
+    load player state for road building system
+]]
+--TODO: UHH NOT SURE IF UR GONNA STILL KEEP THIS LOL
+Players.PlayerAdded:Connect(function(player)
+    RoadBuilderCache.SendAllReplicationCache(player)
+end)
 
 --[[
     client requests road creation assuming there is available road selection data which is either

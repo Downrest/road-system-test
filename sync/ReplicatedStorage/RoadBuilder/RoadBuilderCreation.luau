@@ -116,8 +116,7 @@ local function createRoadPoint(
 				{}, -- will contain other end roadpoints connected to this roadpoint
 				{}, -- usually placeholder, unless a standalone road point is created
 				RoadCreationConfig.DEFAULT_ROAD_POINT_AXIS
-			),
-			true
+			)
 		)
 	end)
 
@@ -164,8 +163,7 @@ local function createRoad(
 			newRoad, 
 			RoadCache(
 				{}
-			),
-			true
+			)
 		)
 	end)
 
@@ -244,6 +242,10 @@ local function createRoadExtension(
 			goalRoadPointCache.vector2Direction = newRoadToGoalDirection
 		end
 
+		--[[
+			ENDPOINT ROAD DATA
+		]]
+
 		if isEndPoint then
 			local endPointCaches = {
 				originRoadPointCache = RoadBuilderCache.GetRoadPointCache(extensionConfigData.originRoadPoint);
@@ -270,16 +272,15 @@ local function createRoadExtension(
 			end
 
 			RoadBuilderCache.QueueReplicationCache(
-				extensionConfigData.originRoadPoint.Position,
+				extensionConfigData.originRoadPoint,
 				endPointCaches.originRoadPointCache,
 				RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
 			)
 			RoadBuilderCache.QueueReplicationCache(
-				goalRoadPoint.Position,
+				goalRoadPoint,
 				endPointCaches.goalRoadPointCache,
 				RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
 			)
-			RoadBuilderCache.SendBatchedReplicationCache()
 
 			-- local originRoadPointCache = RoadBuilderCache.GetRoadPointCache(extensionConfigData.originRoadPoint)
 			-- if originRoadPointCache then
@@ -502,10 +503,10 @@ function Creation.CreateExtensionRoad(
 	table.insert(dependentRoads.roads, goalRoad)
 	dependentRoads.n += 1
 
-	-- ifCreateTypeDefault(roadConfig, function()
-	-- 	-- batch send replication (to client)
-	-- 	RoadBuilderCache.SendBatchedReplicationCache()
-	-- end)
+	ifCreateTypeDefault(roadConfig, function()
+		-- batch send replication (to client)
+		RoadBuilderCache.SendBatchedReplicationCache()
+	end)
 	
 	return RoadCreationOutputData(
 		goalRoadPoint, 

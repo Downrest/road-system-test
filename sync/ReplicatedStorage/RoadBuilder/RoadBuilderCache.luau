@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -5,6 +6,9 @@ local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConf
 local RoadCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadCache)
 local RoadPointCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadPointCache)
 local RoadBuilderEvents = require(ReplicatedStorage.RoadBuilder.RoadBuilderEvents)
+local Signal = require(ReplicatedStorage.SharedPackages.Signal)
+local batch = require(ReplicatedStorage.SharedPackages.Vide.batch)
+local TableUtils = require(ReplicatedStorage.SharedUtils.TableUtils)
 
 local Cache = {}
 
@@ -12,14 +16,14 @@ type RoadPointCacheList = {[BasePart]: RoadPointCache.RoadPointCache}
 type RoadCacheList = {[BasePart]: RoadCache.RoadCache}
 type Vector3ToRoadInstanceCacheList = {[Vector3]: BasePart}
 
-type RoadCaches = RoadCache.RoadCache | RoadPointCache.RoadPointCache
+type RoadCaches = RoadCache.RoadCache<Vector3> | RoadPointCache.RoadPointCache<Vector3>
 
 type TargetRoad = "TargetRoad"
 type TargetRoadPoint = "TargetRoadPoint"
 type TargetCacheTypes = TargetRoad | TargetRoadPoint
 
 type RoadReplicationCache = {
-    roadInstancePosition: Vector3;
+    roadInstance: BasePart;
     roadCacheData: RoadCaches;
     targetCacheType: TargetCacheTypes;
 }
@@ -33,100 +37,93 @@ Cache.TARGET_CACHE_TYPE_ENUMS = {
     TargetRoadPoint = "TargetRoadPoint";
 }
 
+local dataListeners: {[Vector3]: Signal.Signal<(roadCache: RoadCaches) -> ()>} = {}
 local replicateRoadDataEvent = RoadBuilderEvents.ReplicateRoadData
 
 if RunService:IsClient() then
-    local roadReplicationQueue: {RoadReplicationCache} = {}
+	replicateRoadDataEvent.OnClientEvent:Connect(function(batchedReplicateQueue: {RoadReplicationCache})
+        for _, replicationCache in batchedReplicateQueue do
+            local cacheList = replicationCache.targetCacheType == Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+                and Cache.RoadPointCacheList
+                or Cache.RoadCacheList
 
-	replicateRoadDataEvent.OnClientEvent:Connect(function(batchedRoadReplicationCache: {RoadReplicationCache})
-        for _, replicationCache in batchedRoadReplicationCache do
-            local cachedRoadInstance = Cache.Vector3ToRoadInstanceCacheList[replicationCache.roadInstancePosition]
+            local roadInstance = replicationCache.roadInstance
+            local roadData = replicationCache.roadCacheData
 
-            -- override current cache
-            if cachedRoadInstance then
-                local cacheList = (replicationCache.targetCacheType == Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoad)
-                    and Cache.RoadCacheList[cachedRoadInstance]
-                    or Cache.RoadPointCacheList[cachedRoadInstance]
+            cacheList[roadInstance] = roadData
+            Cache.Vector3ToRoadInstanceCacheList[roadInstance.Position] = roadInstance
 
-                cacheList = replicationCache.roadCacheData
-                warn("EXISTENT")
-                
-            -- put into replication queue (which will eventually update cache)
-            else
-                table.insert(roadReplicationQueue, replicationCache)
-                warn("NEW")
+            -- trigger data listeners (for now, data can only be vector3's)
+            for data, listener in dataListeners do
+                if Cache.Vector3ToRoadInstanceCacheList[data] then
+                    listener:Fire(roadData)
+                end
             end
-        end
-    end)
-
-    RoadCreationConfig.ROAD_PARENTS.roadPoint.ChildAdded:Connect(function(roadInstance: BasePart)
-        local roadInstancePosition = roadInstance.Position
-
-        for queueIndex, replicationQueue in roadReplicationQueue do
-            if 
-                replicationQueue.roadInstancePosition ~= roadInstancePosition 
-                and replicationQueue.targetCacheType == Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
-            then
-                continue
-            end
-
-            Cache.RoadPointCacheList[roadInstance] = replicationQueue.roadCacheData
-            Cache.Vector3ToRoadInstanceCacheList[roadInstancePosition] = roadInstance
-            table.remove(roadReplicationQueue, queueIndex)
-            warn("FAJWDHWDH ADH")
-            break
-        end
-    end)
-
-    RoadCreationConfig.ROAD_PARENTS.road.ChildAdded:Connect(function(roadInstance: BasePart)
-        local roadInstancePosition = roadInstance.Position
-
-        for queueIndex, replicationQueue in roadReplicationQueue do
-            if 
-                replicationQueue.roadInstancePosition ~= roadInstancePosition 
-                and replicationQueue.targetCacheType == Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoad
-            then
-                continue
-            end
-
-            Cache.RoadCacheList[roadInstance] = replicationQueue.roadCacheData
-            Cache.Vector3ToRoadInstanceCacheList[roadInstancePosition] = roadInstance
-            table.remove(roadReplicationQueue, queueIndex)
-            break
         end
     end)
 
 else
-    local toBatchReplicateQueue = {}
+    local toBatchReplicateQueue: {RoadReplicationCache} = {}
 
     local function newRoadReplicationCache(
-        roadInstancePosition: Vector3,
+        roadInstance: BasePart,
         roadCacheData: RoadCaches,
         targetCacheType: TargetCacheTypes
     ): RoadReplicationCache
         return {
-            roadInstancePosition = roadInstancePosition;
+            roadInstance = roadInstance;
             roadCacheData = roadCacheData;
             targetCacheType = targetCacheType;
         }
     end
 
     --[[
-        BATCHER
+        PLAYER ADDED
+    ]]
+
+    function Cache.SendAllReplicationCache(players: (Player | {Player})?)
+        assert(players, "Failed to replicate all cache because `players` is empty")
+        players = TableUtils.EnsureTable(players)
+
+        local allCache: {RoadReplicationCache} = {}
+
+        for roadPointInstance, roadPointData in Cache.RoadPointCacheList do
+            table.insert(allCache, newRoadReplicationCache(
+                roadPointInstance,
+                roadPointData,
+                Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+            ))
+        end
+        for roadInstance, roadData in Cache.RoadCacheList do
+            table.insert(allCache, newRoadReplicationCache(
+                roadInstance,
+                roadData,
+                Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoad
+            ))
+        end
+
+        for _, player in players do
+            replicateRoadDataEvent:FireClient(player, allCache)
+        end
+    end
+
+    --[[
+        BATCHER (FOR CURRENT PLAYERS)
     ]]
 
     function Cache.SendBatchedReplicationCache()
         replicateRoadDataEvent:FireAllClients(toBatchReplicateQueue)
+       
         table.clear(toBatchReplicateQueue)
     end
 
     function Cache.QueueReplicationCache(
-        roadInstancePosition: Vector3,
+        roadInstance: BasePart,
         roadCacheData: RoadCaches,
         targetCacheType: TargetCacheTypes
     )
         table.insert(toBatchReplicateQueue, newRoadReplicationCache(
-            roadInstancePosition,
+            roadInstance,
             roadCacheData,
             targetCacheType
         ))
@@ -145,7 +142,7 @@ else
 		Cache.Vector3ToRoadInstanceCacheList[roadPoint.Position] = roadPoint
 
         Cache.QueueReplicationCache(
-            roadPoint.Position,
+            roadPoint,
             roadPointCache,
             Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
         )
@@ -163,7 +160,7 @@ else
 		Cache.Vector3ToRoadInstanceCacheList[road.Position] = road
 
         Cache.QueueReplicationCache(
-            road.Position,
+            road,
             roadCache,
             Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoad
         )
@@ -184,7 +181,7 @@ else
 		Cache.Vector3ToRoadInstanceCacheList[roadPoint.Position] = nil
 
         Cache.QueueReplicationCache(
-            roadPoint.Position,
+            roadPoint,
             nil,
             Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
         )
@@ -201,7 +198,7 @@ else
 		Cache.Vector3ToRoadInstanceCacheList[road.Position] = nil
 
         Cache.QueueReplicationCache(
-            road.Position,
+            road,
             nil,
             Cache.TARGET_CACHE_TYPE_ENUMS.TargetRoad
         )
@@ -214,6 +211,18 @@ end
 --[[
     GETTERS
 ]]
+
+function Cache.ListenOnceForVector3(vector3: Vector3, callback: (roadCache: RoadCaches) -> ())
+    local signal = Signal.new()
+    dataListeners[vector3] = signal
+
+    signal:Once(function(roadCache: RoadCaches)
+        callback(roadCache)
+
+        signal:Destroy()
+        dataListeners[vector3] = nil
+    end)
+end
 
 function Cache.GetRoadInstanceFromVector3(vector3: Vector3): BasePart?
 	return Cache.Vector3ToRoadInstanceCacheList[vector3]

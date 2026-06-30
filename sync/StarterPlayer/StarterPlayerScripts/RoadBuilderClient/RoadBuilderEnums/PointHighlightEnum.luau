@@ -1,6 +1,6 @@
 export type DependentPointHighlight = "DependentPointHighlight"
 export type EndPointHighlight = "EndPointHighlight"
-export type FocusHighlightEnums = DependentPointHighlight | EndPointHighlight
+export type PointHighlightEnums = DependentPointHighlight | EndPointHighlight
 
 return {
 	DependentPointHighlight = "DependentPointHighlight";

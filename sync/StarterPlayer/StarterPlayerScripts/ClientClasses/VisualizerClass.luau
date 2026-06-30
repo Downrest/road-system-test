@@ -1,3 +1,6 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local TableUtils = require(ReplicatedStorage.SharedUtils.TableUtils)
 local VisualizerClass = {}
 local internal = {}
 
@@ -8,15 +11,6 @@ type CacheDefault<typeCache = DefaultTypeCache> = typeCache & {
 } 
 
 type VisualizerCache<typeCache> = {[Instance]: CacheDefault<typeCache>}
-
-local function ensureInstanceTable(instances: {Instance} | Instance): {Instance}
-	if typeof(instances) ~= "table" then
-		instances = {instances}
-	end
-
-	return instances
-end
-
 function internal.GetInstanceVisualData<typeCache>(
 	self: VisualizerClassPrivate,
 	instance: Instance
@@ -29,7 +23,7 @@ function internal.CacheInstancesWithData(
 	instancesToIndex: {Instance} | Instance,
 	data: {[string]: any}
 )
-	local indexTable = ensureInstanceTable(instancesToIndex)
+	local indexTable = TableUtils.EnsureTable(instancesToIndex)
 
 	for _, instance in indexTable do
 		self.visualizerCache[instance] = data
@@ -42,7 +36,7 @@ function internal.ClearVisualizedCache(
 )
 	local visualizerCache = self.visualizerCache
 
-	local whitelistedTable = ensureInstanceTable(whitelistedInstances)
+	local whitelistedTable = TableUtils.EnsureTable(whitelistedInstances)
 
 	-- if statement to avoid unnecessary `table.find()` calls when `whitelistedTable` does not exist
 	if whitelistedTable then
@@ -60,7 +54,6 @@ function internal.ClearVisualizedCache(
 	end
 end
 
---TODO: check if colon sugar syntax works here
 function VisualizerClass.inherit(self: {[any]: any})
 	self.visualizerCache = {}
 

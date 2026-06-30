@@ -9,7 +9,10 @@ local State = {}
 State.DEFAULT_VALUES = {
     IsInBuildMenu = false;
     IsPromptedSelection = false;
-    IsMovingSelection = {isMoving = false, isCustomPosition = false};
+    IsMovingSelection = {
+        isMoving = false;
+        overrideMovementPosition = nil;
+    };
     IsHoveringExistingRoadPoint = false;
     IsVisualizing = false;
     IsValidRoad = true;
@@ -23,11 +26,13 @@ State.DEFAULT_VALUES = {
         selectionPoint = nil;
         selectionDirection = nil;
     };
+
+    PreviousGoalPosition = nil;
 }
 
 export type IsInBuildMenu = boolean
 export type IsPromptedSelection = boolean
-export type IsMovingSelection = {isMoving: boolean, isCustomPosition: boolean}
+export type IsMovingSelection = {isMoving: boolean, overrideMovementPosition: BasePart?}
 export type IsHoveringExistingRoadPoint = boolean
 export type IsVisualizing = boolean
 export type IsValidRoad = boolean
@@ -35,6 +40,8 @@ export type IsValidRoad = boolean
 export type CurrentRoadType = string?
 export type CurrentGoalPoint = {goalPoint: BasePart?, referenceInstance: BasePart?}
 export type CurrentSelectionPoint = {selectionPoint: BasePart?, selectionDirection: Vector2}
+
+export type PreviousGoalPosition = Vector3?
 
 export type StateNames = 
     "IsInBuildMenu"
@@ -59,13 +66,15 @@ State.CurrentRoadType = Vide.source(State.DEFAULT_VALUES.CurrentRoadType):: Vide
 State.CurrentGoalPoint = Vide.source(State.DEFAULT_VALUES.CurrentGoalPoint):: Vide.source<CurrentGoalPoint>
 State.CurrentSelectionPoint = Vide.source(State.DEFAULT_VALUES.CurrentSelectionPoint):: Vide.source<CurrentSelectionPoint>
 
+State.PreviousGoalPosition = Vide.source(State.DEFAULT_VALUES.PreviousGoalPosition):: Vide.source<PreviousGoalPosition>
+
 type VideDerive = (callback: () -> (any)) -> (() -> (any))
 type VideEffect = (callback: () -> ()) -> ()
 
-function State.SetMovingSelection(isMoving: boolean, isCustomPosition: boolean)
+function State.SetMovingSelection(isMoving: boolean, overrideMovementPosition: BasePart?)
     State.IsMovingSelection({
         isMoving = isMoving;
-        isCustomPosition = isCustomPosition;
+        overrideMovementPosition = overrideMovementPosition;
     })
 end
 
@@ -140,6 +149,8 @@ function State.ResetStates(...: StateNames)
         State.CurrentRoadType(State.DEFAULT_VALUES.CurrentRoadType)
         State.CurrentGoalPoint(State.DEFAULT_VALUES.CurrentGoalPoint)
         State.CurrentSelectionPoint(State.DEFAULT_VALUES.CurrentSelectionPoint)
+
+        State.PreviousGoalPosition(State.DEFAULT_VALUES.PreviousGoalPosition)
     end
 end
 
@@ -158,6 +169,8 @@ function State.GetStates()
 		currentRoadType = State.CurrentRoadType;
         currentGoalPoint = State.CurrentGoalPoint;
         currentSelectionPoint = State.CurrentSelectionPoint;
+
+        previousGoalPosition = State.PreviousGoalPosition;
     }
 end
 
@@ -172,6 +185,8 @@ export type CapturedStates = {
     currentRoadType: CurrentRoadType;
     currentGoalPoint: CurrentGoalPoint;
     currentSelectionPoint: CurrentSelectionPoint;
+
+    previousGoalPosition: PreviousGoalPosition;
 }
 
 --[[
@@ -189,6 +204,8 @@ function State.CaptureStates(): CapturedStates
         currentRoadType = Vide.untrack(State.CurrentRoadType);
         currentGoalPoint = Vide.untrack(State.CurrentGoalPoint);
         currentSelectionPoint = Vide.untrack(State.CurrentSelectionPoint);
+
+        previousGoalPosition = Vide.untrack(State.PreviousGoalPosition);
     }
 end
 

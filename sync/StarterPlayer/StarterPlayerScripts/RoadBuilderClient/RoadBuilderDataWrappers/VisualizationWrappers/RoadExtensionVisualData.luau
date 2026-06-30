@@ -5,7 +5,11 @@ local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWr
 export type RoadExtensionVisualData = {
     endRoadPointInstance: BasePart;
     endRoadPointVector2Data: PointVector2Data.PointVector2Data;
-    dependentRoadInstances: {BasePart};
+    dependentRoadInstances: {
+        n: number;
+        roadPoints: {BasePart};
+        roads: {BasePart};
+    };
     destructor: () -> ();
 }
 

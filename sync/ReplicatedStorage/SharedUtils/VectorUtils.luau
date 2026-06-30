@@ -8,4 +8,13 @@ function Vector.Vector3FromVector2AndY(vector2: Vector2, y: number): Vector3
 	return Vector3.new(vector2.X, y, vector2.Y)
 end
 
+function Vector.ConvertPartToVector3Table(partTable: {BasePart})
+	local vector3Table = {}
+	for _, part in partTable do
+		table.insert(vector3Table, part.Position)
+	end
+
+	return vector3Table
+end
+
 return Vector

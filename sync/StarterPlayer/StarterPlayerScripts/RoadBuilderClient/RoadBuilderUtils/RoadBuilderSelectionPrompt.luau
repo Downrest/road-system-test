@@ -114,6 +114,13 @@ local function selectionPromptSignals(
     }
 end
 
+function SelectionPrompt.ToggleValidRoadSelection(
+    selectionGui: SelectionPromptGui, 
+    isValid: boolean?
+)
+    selectionGui.confirmationFrame.selectButton.Visible = isValid
+end
+
 --[[
     Creates a selection prompt parented to `adornee` parameter, returning 1) select-triggered signal, 2) undo-triggered signal, and 3) destructor function.
 

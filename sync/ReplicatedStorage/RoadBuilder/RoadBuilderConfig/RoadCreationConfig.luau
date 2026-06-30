@@ -15,7 +15,7 @@ local Config = {
 	-- limits road points from getting closer in distance between either origin or goal beyond this value
 	ROAD_CURVE_EDGE_LIMIT = 2;
 	ROAD_CURVE_T_EASING = {
-		horizontal = MathEasing.EaseInOutSine;
+		horizontal = MathEasing.EaseInSine;
 		vertical = MathEasing.EaseInOutSine;
 	};
 	--[[
