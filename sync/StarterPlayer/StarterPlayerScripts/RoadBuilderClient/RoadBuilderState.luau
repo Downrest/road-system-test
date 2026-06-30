@@ -15,7 +15,12 @@ State.DEFAULT_VALUES = {
     };
     IsHoveringExistingRoadPoint = false;
     IsVisualizing = false;
-    IsValidRoad = true;
+
+    --[[
+        both of these must be true because Vide.state() runs once initially to track dependcies
+    ]]
+    IsValidRoadPoint = true;
+    IsSelectingEndPoint = true;
 
     CurrentRoadType = nil;
     CurrentGoalPoint = {
@@ -35,7 +40,8 @@ export type IsPromptedSelection = boolean
 export type IsMovingSelection = {isMoving: boolean, overrideMovementPosition: BasePart?}
 export type IsHoveringExistingRoadPoint = boolean
 export type IsVisualizing = boolean
-export type IsValidRoad = boolean
+export type IsValidRoadPoint = boolean
+export type IsSelectingEndPoint = boolean
 
 export type CurrentRoadType = string?
 export type CurrentGoalPoint = {goalPoint: BasePart?, referenceInstance: BasePart?}
@@ -49,7 +55,7 @@ export type StateNames =
     | "IsMovingSelection" 
     | "IsHoveringExistingRoadPoint"
     | "IsVisualizing"
-    | "IsValidRoad"
+    | "IsValidRoadPoint"
 
     | "CurrentRoadType"
     | "CurrentGoalPoint"
@@ -60,7 +66,8 @@ State.IsPromptedSelection = Vide.source(State.DEFAULT_VALUES.IsPromptedSelection
 State.IsMovingSelection = Vide.source(State.DEFAULT_VALUES.IsMovingSelection):: Vide.source<IsMovingSelection>
 State.IsHoveringExistingRoadPoint = Vide.source(State.DEFAULT_VALUES.IsHoveringExistingRoadPoint):: Vide.source<IsHoveringExistingRoadPoint>
 State.IsVisualizing = Vide.source(State.DEFAULT_VALUES.IsVisualizing):: Vide.source<IsVisualizing>
-State.IsValidRoad = Vide.source(State.DEFAULT_VALUES.IsValidRoad):: Vide.source<IsValidRoad>
+State.IsValidRoadPoint = Vide.source(State.DEFAULT_VALUES.IsValidRoadPoint):: Vide.source<IsValidRoadPoint>
+State.IsSelectingEndPoint = Vide.source(State.DEFAULT_VALUES.IsSelectingEndPoint):: Vide.source<IsSelectingEndPoint>
 
 State.CurrentRoadType = Vide.source(State.DEFAULT_VALUES.CurrentRoadType):: Vide.source<CurrentRoadType>
 State.CurrentGoalPoint = Vide.source(State.DEFAULT_VALUES.CurrentGoalPoint):: Vide.source<CurrentGoalPoint>
@@ -144,7 +151,8 @@ function State.ResetStates(...: StateNames)
         State.IsMovingSelection(State.DEFAULT_VALUES.IsMovingSelection)
         State.IsHoveringExistingRoadPoint(State.DEFAULT_VALUES.IsHoveringExistingRoadPoint)
         State.IsVisualizing(State.DEFAULT_VALUES.IsVisualizing)
-        State.IsValidRoad(State.DEFAULT_VALUES.IsValidRoad)
+        State.IsValidRoadPoint(State.DEFAULT_VALUES.IsValidRoadPoint)
+        State.IsSelectingEndPoint(State.DEFAULT_VALUES.IsSelectingEndPoint)
     
         State.CurrentRoadType(State.DEFAULT_VALUES.CurrentRoadType)
         State.CurrentGoalPoint(State.DEFAULT_VALUES.CurrentGoalPoint)
@@ -164,7 +172,8 @@ function State.GetStates()
         isMovingSelection = State.IsMovingSelection;
         isHoveringExistingRoadPoint = State.IsHoveringExistingRoadPoint;
         isVisualizing = State.IsVisualizing;
-        isValidRoad = State.IsValidRoad;
+        isValidRoadPoint = State.IsValidRoadPoint;
+        isSelectingEndPoint = State.IsSelectingEndPoint;
 
 		currentRoadType = State.CurrentRoadType;
         currentGoalPoint = State.CurrentGoalPoint;
@@ -180,7 +189,8 @@ export type CapturedStates = {
     isMovingSelection: IsMovingSelection;
     isHoveringExistingRoadPoint: IsHoveringExistingRoadPoint;
     isVisualizing: IsVisualizing;
-    isValidRoad: IsValidRoad;
+    isValidRoadPoint: IsValidRoadPoint;
+    isSelectingEndPoint: IsSelectingEndPoint;
 
     currentRoadType: CurrentRoadType;
     currentGoalPoint: CurrentGoalPoint;
@@ -199,7 +209,8 @@ function State.CaptureStates(): CapturedStates
         isMovingSelection = Vide.untrack(State.IsMovingSelection);
         isHoveringExistingRoadPoint = Vide.untrack(State.IsHoveringExistingRoadPoint);
         isVisualizing = Vide.untrack(State.IsVisualizing);
-        isValidRoad = Vide.untrack(State.IsValidRoad);
+        isValidRoadPoint = Vide.untrack(State.IsValidRoadPoint);
+        isSelectingEndPoint = Vide.untrack(State.IsSelectingEndPoint);
 
         currentRoadType = Vide.untrack(State.CurrentRoadType);
         currentGoalPoint = Vide.untrack(State.CurrentGoalPoint);

@@ -1,6 +1,9 @@
 export type ExtensionConfigData = {
     isEndPoint: boolean;
-    endPointDependents: {BasePart};
+    endPointDependents: {
+        roadPoints: {BasePart};
+        roads: {BasePart};
+    };
 
     originRoadPoint: BasePart;
 }
@@ -8,12 +11,16 @@ export type ExtensionConfigData = {
 return function(
     isEndPoint: boolean,
     originRoadPoint: BasePart,
-    endPointDependents: {BasePart}
+    
+    dependentRoadPoints: {BasePart},
+    dependentRoads: {BasePart}
 ): ExtensionConfigData
     return {
         isEndPoint = isEndPoint;
-        endPointDependents = endPointDependents;
-
+        endPointDependents = {
+            roadPoints = dependentRoadPoints;
+            roads = dependentRoads;
+        };
         originRoadPoint = originRoadPoint;
     }
 end

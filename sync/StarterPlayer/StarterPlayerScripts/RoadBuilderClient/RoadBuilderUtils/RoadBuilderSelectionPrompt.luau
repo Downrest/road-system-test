@@ -121,6 +121,15 @@ function SelectionPrompt.ToggleValidRoadSelection(
     selectionGui.confirmationFrame.selectButton.Visible = isValid
 end
 
+function SelectionPrompt.ToggleRemakeButtons(
+    selectionGui: SelectionPromptGui, 
+    canRemake: boolean?
+)
+    selectionGui.movementFrame.verticalHandle.Visible = canRemake
+    selectionGui.resetFrame.resetButton.Visible = canRemake
+end
+
+
 --[[
     Creates a selection prompt parented to `adornee` parameter, returning 1) select-triggered signal, 2) undo-triggered signal, and 3) destructor function.
 

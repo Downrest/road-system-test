@@ -4,6 +4,7 @@ local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
 local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
 local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
+local RoadPointCacheTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadPointCacheTypeEnums)
 local RoadBuilderCurveUtils = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderCurveUtils)
 local MathGeneral = require(ReplicatedStorage.SharedUtils.MathUtils.MathGeneral)
 local VectorUtils = require(ReplicatedStorage.SharedUtils.VectorUtils)
@@ -49,8 +50,18 @@ local function validateCurveAngle(
 	return (originToCurveDotAngle <= maximumCurveAngle)
 end
 
-function SelectionValidator.IsValidRoadPoint(roadPoint: BasePart): boolean
-    return (RoadBuilderCache.GetRoadPointCache(roadPoint) ~= nil)
+function SelectionValidator.IsValidRoadPoint(
+	roadPoint: BasePart,
+	checkIfEndPoint: boolean?
+): (boolean, boolean?)
+	local roadPointCache = RoadBuilderCache.GetRoadPointCache(roadPoint)
+
+    return 
+		(roadPointCache ~= nil),
+	
+		checkIfEndPoint 
+		and roadPointCache
+		and (roadPointCache.roadPointCacheType == RoadPointCacheTypeEnums.EndPoint)
 end
 
 function SelectionValidator.ValidateRoadRequest(

@@ -67,6 +67,51 @@ local function ifCreateTypeDefault(
 	end
 end
 
+local function cacheRoadExtensionData(
+	originRoadPoint: BasePart,
+	goalRoadPoint: BasePart,
+
+	dependentRoadPoints: {BasePart},
+	dependentRoads: {BasePart}
+)
+	local endPointCaches = {
+		originRoadPointCache = RoadBuilderCache.GetRoadPointCache(originRoadPoint);
+		goalRoadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint);
+	}
+
+	for _, endPointCache: RoadPointCache.RoadPointCache in endPointCaches do
+		for _, dependentRoadPoint in dependentRoadPoints do
+			table.insert(endPointCache.dependentRoadInstances.roadPoints, dependentRoadPoint)
+		end
+		for _, dependentRoad in dependentRoads do
+			table.insert(endPointCache.dependentRoadInstances.roads, dependentRoad)
+
+			-- local dependentRoadCache = RoadBuilderCache.GetRoadCache(dependentRoad)
+			-- if dependentRoadCache then
+			-- 	table.insert(dependentRoadCache.dependeeRoadPoints, originRoadPoint)
+			-- end
+		end
+
+		table.insert(
+			endPointCache.pairExtensionEndRoadPoints, 
+			(endPointCache == endPointCaches.originRoadPointCache)
+				and goalRoadPoint
+				or originRoadPoint
+		)
+	end
+
+	RoadBuilderCache.QueueReplicationCache(
+		originRoadPoint,
+		endPointCaches.originRoadPointCache,
+		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+	)
+	RoadBuilderCache.QueueReplicationCache(
+		goalRoadPoint,
+		endPointCaches.goalRoadPointCache,
+		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+	)
+end
+
 local function createRoadPoint(
 	roadAsset: BasePart, 
 	
@@ -102,7 +147,11 @@ local function createRoadPoint(
 			RoadPointCache(
 				shouldBeCachedAsEndPoint and RoadPointCacheTypeEnums.EndPoint or RoadPointCacheTypeEnums.DependentPoint,
 				{}, -- will contain other end roadpoints connected to this roadpoint
-				{}, -- usually placeholder, unless a standalone road point is created
+
+				-- usually placeholders, unless a standalone road point is created
+				{}, 
+				{},
+
 				RoadCreationConfig.DEFAULT_ROAD_POINT_AXIS
 			)
 		)
@@ -229,47 +278,6 @@ local function createRoadExtension(
 			goalRoadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint)
 			goalRoadPointCache.vector2Direction = newRoadToGoalDirection
 		end
-
-		--[[
-			ENDPOINT ROAD DATA
-		]]
-
-		if isEndPoint then
-			local endPointCaches = {
-				originRoadPointCache = RoadBuilderCache.GetRoadPointCache(extensionConfigData.originRoadPoint);
-				goalRoadPointCache = goalRoadPointCache;
-			}
-
-			for _, endPointCache: RoadPointCache.RoadPointCache in endPointCaches do
-				for _, dependent: BasePart in TableUtils.MergeArray(extensionConfigData.endPointDependents, originToGoalRoad) do
-					-- we expect `dependentRoads` to already exist as a table
-					table.insert(endPointCache.dependentRoads, dependent)
-
-					local dependentRoadCache = RoadBuilderCache.GetRoadCache(dependent)
-					if dependentRoadCache then
-						table.insert(dependentRoadCache.dependeeRoadPoints, extensionConfigData.originRoadPoint)
-					end
-				end
-
-				table.insert(
-					endPointCache.pairExtensionEndRoadPoints, 
-					(endPointCache == endPointCaches.originRoadPointCache)
-						and goalRoadPoint
-						or extensionConfigData.originRoadPoint
-				)
-			end
-
-			RoadBuilderCache.QueueReplicationCache(
-				extensionConfigData.originRoadPoint,
-				endPointCaches.originRoadPointCache,
-				RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
-			)
-			RoadBuilderCache.QueueReplicationCache(
-				goalRoadPoint,
-				endPointCaches.goalRoadPointCache,
-				RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
-			)
-		end
 		
 		return goalRoadPoint, originToGoalRoad, goalVector2Direction
 
@@ -314,9 +322,11 @@ local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.Overr
     
     -- override via Destroy()
     previousRoadPoint:Destroy()
-    for _, dependentRoad in previousRoadPointCache.dependentRoads do
-        dependentRoad:Destroy()
-    end
+	for _, roadCategory in previousRoadPointCache.dependentRoadInstances do
+		for _, roadInstance: BasePart in roadCategory do
+			roadInstance:Destroy()
+		end
+	end
 
     for _, endPoint in previousRoadPointCache.pairExtensionEndRoadPoints do
         local endPointCache = RoadBuilderCache.GetRoadPointCache(endPoint)
@@ -370,6 +380,11 @@ function Creation.CreateOriginRoadPoint(
 		nil, 
 		shouldBeCachedAsEndPoint
 	)
+
+	ifCreateTypeDefault(roadConfig, function()
+		-- batch send replication (to client)
+		RoadBuilderCache.SendBatchedReplicationCache()
+	end)
 	
 	return RoadCreationOutputData(
 		newRoadPoint,
@@ -490,17 +505,25 @@ function Creation.CreateExtensionRoad(
 		ExtensionConfigData(
 			true, 
 			originRoadPoint,
-			TableUtils.MergeArray(
-				dependentRoads.roads,
-				dependentRoads.roadPoints
-			)
+			dependentRoads.roadPoints,
+			dependentRoads.roads
 		)
 	)
-	-- goalRoadPoint.Color = Color3.new(1, 0, 0)
+	
+	table.insert(dependentRoads.roadPoints, goalRoadPoint)
 	table.insert(dependentRoads.roads, goalRoad)
-	dependentRoads.n += 1
+	dependentRoads.n += 2
 
 	ifCreateTypeDefault(roadConfig, function()
+		-- update server cache extension road data
+		cacheRoadExtensionData(
+			originRoadPoint,
+			goalRoadPoint,
+	
+			dependentRoads.roadPoints,
+			dependentRoads.roads
+		)
+
 		-- batch send replication (to client)
 		RoadBuilderCache.SendBatchedReplicationCache()
 	end)
