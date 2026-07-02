@@ -16,6 +16,7 @@ type HightlightData = {
 
 local ROAD_POINT_HIGHLIGHT = RoadBuilderAssetGetter.highlights.VisualizeRoadPointHighlight
 local HIGHLIGHT_ENUM_TO_COLORS = {
+    [PointHighlightEnums.NothingHighlight] = RoadVisualizationConfig.HIGHLIGHT_ROAD_POINT_COLORS.nothing;
     [PointHighlightEnums.EndPointHighlight] = RoadVisualizationConfig.HIGHLIGHT_ROAD_POINT_COLORS.endPoint;
     [PointHighlightEnums.DependentPointHighlight] = RoadVisualizationConfig.HIGHLIGHT_ROAD_POINT_COLORS.dependentPoint;
 }
@@ -64,10 +65,26 @@ local function applyHighlightEnumColor(
     )
 end
 
+--TODO: MAKE THIS
+--[[
+    Resets all highlights' `Adornee` property to be nil.
+]]
+function PointHighlight.ResetHighlightAdornees()
+    for _, highlight in PointHighlight.HighlightCache do
+        highlight.highlightInstance.Adornee = nil
+    end
+end
+
+--[[
+    Resets `PointHighlight.TrackedRoadPoints`, allowing new road points to attach to highlights starting from the very first highlight.
+]]
 function PointHighlight.ResetHighlightTracking()
     PointHighlight.TrackedRoadPoints = {}
 end
 
+--[[
+    Attaches available highlights to `roadPoints` and inserts/tracks them in `PointHighlight.TrackedRoadPoints` to incrementally decide which highlights will new `roadPoints` be attached to.
+]]
 function PointHighlight.HighlightRoadPoints(
     roadPoints: BasePart | {BasePart}, 
     highlightEnum: PointHighlightEnums.PointHighlightEnums
@@ -87,11 +104,6 @@ function PointHighlight.HighlightRoadPoints(
             break
         end
 
-        -- this just avoids unnecessary highlight property changes
-        -- if highlight.highlightEnum ~= highlightEnum then
-        --     applyHighlightEnumColor(highlight.highlightInstance, highlightEnum)
-        --     highlight.highlightEnum = highlightEnum
-        -- end
         applyHighlightEnumColor(highlight.highlightInstance, highlightEnum)
 
         highlight.highlightInstance.Adornee = roadPoint

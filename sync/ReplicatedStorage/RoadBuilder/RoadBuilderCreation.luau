@@ -11,11 +11,16 @@ local CreateTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.C
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 local RoadBuilderAssetGetter = require(ReplicatedStorage.RoadBuilder.RoadBuilderAssetGetter)
 local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
+local DependentPointConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.PointConfigWrappers.DependentPointConfig)
+local EndPointConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.PointConfigWrappers.EndPointConfig)
 local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.DefaultCreateType)
-local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.OverrideRoadConfig)
 local ExtensionConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.ExtensionConfigData)
+local ClearPreviousRoad = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.OverrideRoadWrappers.ClearPreviousRoad)
+local SetPointCacheType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.OverrideRoadWrappers.SetPointCacheType)
 local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
+local OverrideRoadEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.OverrideRoadEnums)
 local RoadPointCacheTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadPointCacheTypeEnums)
+local RoadVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadVariantEnums)
 local RoadBuilderCurveUtils = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderCurveUtils)
 local PropertiesUtils = require(ReplicatedStorage.SharedUtils.PropertiesUtils)
 local TableUtils = require(ReplicatedStorage.SharedUtils.TableUtils)
@@ -58,6 +63,7 @@ local function assertCreateDefaultTypeToServer(defaultCreateType: DefaultCreateT
 	return isCreateTypeDefault
 end
 
+--TODO: support an else for this one
 local function ifCreateTypeDefault(
 	roadConfig: RoadConfigData.RoadConfigData, 
 	callback: () -> ()
@@ -65,51 +71,6 @@ local function ifCreateTypeDefault(
 	if roadConfig.createType.tag == CreateTypeEnums.Default then
 		callback()
 	end
-end
-
-local function cacheRoadExtensionData(
-	originRoadPoint: BasePart,
-	goalRoadPoint: BasePart,
-
-	dependentRoadPoints: {BasePart},
-	dependentRoads: {BasePart}
-)
-	local endPointCaches = {
-		originRoadPointCache = RoadBuilderCache.GetRoadPointCache(originRoadPoint);
-		goalRoadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint);
-	}
-
-	for _, endPointCache: RoadPointCache.RoadPointCache in endPointCaches do
-		for _, dependentRoadPoint in dependentRoadPoints do
-			table.insert(endPointCache.dependentRoadInstances.roadPoints, dependentRoadPoint)
-		end
-		for _, dependentRoad in dependentRoads do
-			table.insert(endPointCache.dependentRoadInstances.roads, dependentRoad)
-
-			-- local dependentRoadCache = RoadBuilderCache.GetRoadCache(dependentRoad)
-			-- if dependentRoadCache then
-			-- 	table.insert(dependentRoadCache.dependeeRoadPoints, originRoadPoint)
-			-- end
-		end
-
-		table.insert(
-			endPointCache.pairExtensionEndRoadPoints, 
-			(endPointCache == endPointCaches.originRoadPointCache)
-				and goalRoadPoint
-				or originRoadPoint
-		)
-	end
-
-	RoadBuilderCache.QueueReplicationCache(
-		originRoadPoint,
-		endPointCaches.originRoadPointCache,
-		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
-	)
-	RoadBuilderCache.QueueReplicationCache(
-		goalRoadPoint,
-		endPointCaches.goalRoadPointCache,
-		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
-	)
 end
 
 local function createRoadPoint(
@@ -146,11 +107,17 @@ local function createRoadPoint(
 			newRoadPoint, 
 			RoadPointCache(
 				shouldBeCachedAsEndPoint and RoadPointCacheTypeEnums.EndPoint or RoadPointCacheTypeEnums.DependentPoint,
-				{}, -- will contain other end roadpoints connected to this roadpoint
-
-				-- usually placeholders, unless a standalone road point is created
-				{}, 
-				{},
+				shouldBeCachedAsEndPoint 
+					and EndPointConfig(
+						{},
+						{},
+						{},
+						{}
+					)
+					or DependentPointConfig(
+						{},
+						{}
+					),
 
 				RoadCreationConfig.DEFAULT_ROAD_POINT_AXIS
 			)
@@ -199,6 +166,7 @@ local function createRoad(
 		RoadBuilderCache.SetRoadCache(
 			newRoad, 
 			RoadCache(
+				{},
 				{}
 			)
 		)
@@ -219,7 +187,6 @@ local function createRoadExtension(
 	toExtensionData: PointVector2Data.PointVector2Data,
 	extensionConfigData: ExtensionConfigData.ExtensionConfigData?
 ): (BasePart, BasePart, Vector2?)
-
 	-- default creation
 	if roadConfig.createType.tag == CreateTypeEnums.Default then
 		local isEndPoint = extensionConfigData and extensionConfigData.isEndPoint
@@ -304,49 +271,389 @@ local function createRoadExtension(
 	end
 end
 
-local function overridePreviousRoad(overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig)
-    if not overrideRoadConfig or not overrideRoadConfig.shouldOverride then
-        return
-    end
+local function cacheEndPointData(
+	originRoadPoint: BasePart,
+	goalRoadPoint: BasePart,
 
-    --[[
-        this refers to the `currentRemakeRoadCache.selectionRoadPoint.Position` from RoadBuilderClient.luau
-        ps. we're sending positions instead of instances to avoid issues from the client-server boundary
-    ]]
-    local previousRoadPoint = RoadBuilderCache.GetRoadInstanceFromVector3(overrideRoadConfig.overridenRoadPointPosition)
-    
-    local previousRoadPointCache = previousRoadPoint and RoadBuilderCache.GetRoadPointCache(previousRoadPoint)
-    if not previousRoadPointCache then
-        return
-    end
-    
-    -- override via Destroy()
-    previousRoadPoint:Destroy()
-	for _, roadCategory in previousRoadPointCache.dependentRoadInstances do
-		for _, roadInstance: BasePart in roadCategory do
-			roadInstance:Destroy()
+	dependentRoadPoints: {BasePart},
+	dependentRoads: {BasePart}
+)
+	local endPoints = {
+		originRoadPoint = {
+			roadPointInstance = originRoadPoint;
+			roadPointCache = RoadBuilderCache.GetRoadPointCache(originRoadPoint);
+		};
+		goalRoadPoint = {
+			roadPointInstance = goalRoadPoint;
+			roadPointCache = RoadBuilderCache.GetRoadPointCache(goalRoadPoint);
+		};
+	}
+
+	for _, endPoint in 
+		endPoints:: {{roadPointInstance: BasePart, roadPointCache: RoadPointCache.RoadPointCache}}
+	do
+		local endPointCache: RoadPointCache.RoadPointCache = endPoint.roadPointCache
+		if endPointCache.roadPointCacheType == RoadPointCacheTypeEnums.DependentPoint then
+			continue
 		end
+
+		local endPointRoadConfig: EndPointConfig.EndPointConfig = endPointCache.roadPointConfig
+
+		local endPointInstance = endPoint.roadPointInstance
+		local otherEndPointInstance = endPointInstance == originRoadPoint 
+			and goalRoadPoint
+			or originRoadPoint
+
+		for _, dependentRoadPoint in dependentRoadPoints do
+			table.insert(endPointRoadConfig.dependentRoadInstances.roadPoints, dependentRoadPoint)
+
+			local dependentRoadPointCache = RoadBuilderCache.GetRoadPointCache(dependentRoadPoint)
+			if dependentRoadPointCache then
+				local roadConfig: DependentPointConfig.DependentPointConfig = dependentRoadPointCache.roadPointConfig
+				table.insert(roadConfig.dependeeRoadPoints, endPointInstance)
+			end
+		end
+		for _, dependentRoad in dependentRoads do
+			table.insert(endPointRoadConfig.dependentRoadInstances.roads, dependentRoad)
+
+			local dependentRoadCache = RoadBuilderCache.GetRoadCache(dependentRoad)
+			if dependentRoadCache then
+				table.insert(dependentRoadCache.dependeeRoadPoints, endPointInstance)
+			end
+		end
+
+		table.insert(endPointRoadConfig.pairExtensionEndRoadPoints, otherEndPointInstance)
 	end
 
-    for _, endPoint in previousRoadPointCache.pairExtensionEndRoadPoints do
-        local endPointCache = RoadBuilderCache.GetRoadPointCache(endPoint)
-        if not endPointCache then
-            continue
-        end
+	RoadBuilderCache.QueueReplicationCache(
+		originRoadPoint,
+		endPoints.originRoadPoint.roadPointCache,
+		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+	)
+	RoadBuilderCache.QueueReplicationCache(
+		goalRoadPoint,
+		endPoints.goalRoadPoint.roadPointCache,
+		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+	)
+end
 
-        local previousIndexInCache = table.find(
-            endPointCache.pairExtensionEndRoadPoints,
-            previousRoadPoint
-        )
-        if previousIndexInCache then
-            table.remove(endPointCache.pairExtensionEndRoadPoints, previousIndexInCache)
-        end
+local function cacheRoadAndRoadPointData(
+	fromPointInstance: BasePart,
+	toPointInstance: BasePart,
+	roadInstance: BasePart
+)
+	local fromPointCache = RoadBuilderCache.GetRoadPointCache(fromPointInstance)
+	local toPointCache = RoadBuilderCache.GetRoadPointCache(toPointInstance)
+	local roadCache = RoadBuilderCache.GetRoadCache(roadInstance)
+
+	-- update roadpoint cache
+	table.insert(fromPointCache.roadPointConfig.connectedRoads, roadInstance)
+	RoadBuilderCache.QueueReplicationCache(
+		fromPointInstance,
+		fromPointCache,
+		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+	)
+
+	table.insert(toPointCache.roadPointConfig.connectedRoads, roadInstance)
+	RoadBuilderCache.QueueReplicationCache(
+		toPointInstance,
+		toPointCache,
+		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+	)
+
+	-- update road cache
+	table.insert(roadCache.connectedRoadPoints, fromPointInstance)
+	table.insert(roadCache.connectedRoadPoints, toPointInstance)
+	RoadBuilderCache.QueueReplicationCache(
+		roadInstance,
+		roadCache,
+		RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoad
+	)
+end
+
+local function clearPreviousRoadOverride(clearPreviousRoadConfig: ClearPreviousRoad.ClearPreviousRoad)
+	assert(clearPreviousRoadConfig, "Cannot override previous road with nil `clearPreviousRoadConfig`")
+
+    for _, clearPosition in clearPreviousRoadConfig.clearPointPositions do
+		--[[
+			this refers to the `currentRemakeRoadCache.selectionRoadPoint.Position` from RoadBuilderClient.luau
+			ps. we're sending positions instead of instances to avoid issues from the client-server boundary
+		]]
+		local previousRoadPoint = RoadBuilderCache.GetRoadInstanceFromVector3(clearPosition)
+
+		local previousRoadPointCache = previousRoadPoint and RoadBuilderCache.GetRoadPointCache(previousRoadPoint)
+		if not previousRoadPointCache or previousRoadPointCache.roadPointCacheType == RoadPointCacheTypeEnums.DependentPoint then
+			continue
+		end
+
+		local previousRoadPointConfig = previousRoadPointCache.roadPointConfig
+
+		-- override via Destroy()
+		for _, roadInstance in TableUtils.MergeArray(
+			previousRoadPointConfig.dependentRoadInstances.roadPoints,
+			previousRoadPointConfig.dependentRoadInstances.roads,
+			previousRoadPoint
+		) do
+			roadInstance:Destroy()
+		end
+
+		for _, endPoint in previousRoadPointConfig.pairExtensionEndRoadPoints do
+			local endPointCache = RoadBuilderCache.GetRoadPointCache(endPoint)
+			if not endPointCache or endPointCache.roadPointCacheType == RoadPointCacheTypeEnums.DependentPoint then
+				continue
+			end
+
+			local endPointRoadConfig = endPointCache.roadPointConfig
+
+			local previousIndexInCache = table.find(
+				endPointRoadConfig.pairExtensionEndRoadPoints,
+				previousRoadPoint
+			)
+			if previousIndexInCache then
+				table.remove(endPointRoadConfig.pairExtensionEndRoadPoints, previousIndexInCache)
+			end
+		end
+
+		RoadBuilderCache.ClearRoadPointCache(previousRoadPoint)
     end
+end
 
-    RoadBuilderCache.ClearRoadPointCache(previousRoadPoint)
+local function setPointCacheTypeOverride(setPointCacheType: SetPointCacheType.SetPointCacheType)
+	assert(setPointCacheType, "Cannot set point cache type with nil `setPointCacheType`")
+
+	for _, targetPosition in setPointCacheType.pointPositions do
+		local targetPointInstance = RoadBuilderCache.GetRoadInstanceFromVector3(targetPosition)
+		local targetPointCache = targetPointInstance
+			and RoadBuilderCache.GetRoadPointCache(targetPointInstance)
+		
+		-- no changes necessary
+		if 
+			not targetPointCache 
+			or targetPointCache.roadPointCacheType == setPointCacheType.pointCacheType 
+		then
+			continue
+		end
+		
+		-- converting cache type `DependentPoint` to `EndPoint`
+		if setPointCacheType.pointCacheType == RoadPointCacheTypeEnums.EndPoint then
+			local targetPointConfig: DependentPointConfig.DependentPointConfig = targetPointCache.roadPointConfig
+			
+			-- contains endpoints paired to target endpoint
+			local pairEndPointDataList = {}:: {
+				[BasePart]: {
+					dependentRoadPoints: {BasePart};
+					dependentRoads: {BasePart};
+					pointCache: RoadPointCache.RoadPointCache;
+				}
+			}
+			local intersectedRoadDependents: {BasePart} = {}
+
+			for _, connectedRoadInstance in targetPointConfig.connectedRoads do
+				local previousInstance = targetPointInstance
+				local currentRoadInstance = connectedRoadInstance
+				local currentRoadCache = RoadBuilderCache.GetRoadDataFromVector3(connectedRoadInstance.Position)
+
+				local connectedRoadPoints = {}
+				local connectedRoads = {connectedRoadInstance}
+
+				--[[
+					FILL IN `newDependentRoadPoints` AND `newDependentRoads`
+				]]
+
+				while (currentRoadCache.roadPointCacheType ~= RoadPointCacheTypeEnums.EndPoint) do
+					local nextConnectedList: {BasePart} = 
+						currentRoadCache.roadPointConfig
+						and currentRoadCache.roadPointConfig.connectedRoads
+
+						or currentRoadCache.connectedRoadPoints
+					
+					table.insert(intersectedRoadDependents, currentRoadInstance)
+
+					local toBePreviousInstance = currentRoadInstance
+
+					for _, nextConnectedInstance in nextConnectedList do
+						if nextConnectedInstance == previousInstance then
+							continue
+						end
+
+						local nextConnectedCache = RoadBuilderCache.GetRoadDataFromVector3(nextConnectedInstance.Position)
+
+						currentRoadInstance = nextConnectedInstance
+						currentRoadCache = nextConnectedCache
+
+						if currentRoadCache.roadPointCacheType ~= RoadPointCacheTypeEnums.EndPoint then
+							if currentRoadCache.roadVariant == RoadVariantEnums.RoadPoint then
+								table.insert(connectedRoadPoints, nextConnectedInstance)
+							else
+								table.insert(connectedRoads, nextConnectedInstance)
+							end
+							table.insert(intersectedRoadDependents, nextConnectedInstance)
+						end
+					end
+
+					-- avoid infinite recursion, just incase ig
+					if currentRoadInstance == toBePreviousInstance then
+						break
+					end
+
+					previousInstance = toBePreviousInstance
+				end
+
+				--[[
+					FILL IN `endPointData`
+				]]
+
+				-- now we can assume that `currentRoadInstance` is an endpoint
+				pairEndPointDataList[currentRoadInstance] = {
+					dependentRoadPoints = connectedRoadPoints;
+					dependentRoads = connectedRoads;
+					pointCache = currentRoadCache;
+				}
+			end
+
+			for pairEndPointInstance, pairEndPointData in pairEndPointDataList do
+				local pairEndPointRoadCache: RoadPointCache.RoadPointCache = pairEndPointData.pointCache
+				local pairEndPointRoadConfig: EndPointConfig.EndPointConfig = pairEndPointRoadCache.roadPointConfig
+
+				-- remove all previous roads between the end points
+				for _, intersectedRoad in intersectedRoadDependents do
+					local intersectedtoDependentRoadPointIndex = table.find(
+						pairEndPointRoadConfig.dependentRoadInstances.roadPoints,
+						intersectedRoad
+					)
+					local intersectedtoDependentRoadIndex = table.find(
+						pairEndPointRoadConfig.dependentRoadInstances.roads,
+						intersectedRoad
+					)
+
+					if intersectedtoDependentRoadPointIndex then
+						table.remove(
+							pairEndPointRoadConfig.dependentRoadInstances.roadPoints, 
+							intersectedtoDependentRoadPointIndex
+						)
+					elseif intersectedtoDependentRoadIndex then
+						table.remove(
+							pairEndPointRoadConfig.dependentRoadInstances.roads, 
+							intersectedtoDependentRoadIndex
+						)
+					end
+				end
+				-- remove target endpoint from `pairEndPointRoadConfig.dependentRoadInstances.roadPoints`
+				table.remove(
+					pairEndPointRoadConfig.dependentRoadInstances.roadPoints,
+					table.find(
+						pairEndPointRoadConfig.dependentRoadInstances.roadPoints,
+						targetPointInstance
+					)
+				)
+
+				-- insert the respective split of dependent roads between each of the end points
+				TableUtils.InsertValues(pairEndPointRoadConfig.dependentRoadInstances.roadPoints, pairEndPointData.dependentRoadPoints)
+				TableUtils.InsertValues(pairEndPointRoadConfig.dependentRoadInstances.roads, pairEndPointData.dependentRoads)
+
+				-- remove the other road points from `pairExtensionEndRoadPoints`
+				for otherPointInstance in pairEndPointDataList do
+					local otherPointInEndPoints = table.find(pairEndPointRoadConfig.pairExtensionEndRoadPoints, otherPointInstance)
+					if not otherPointInEndPoints then
+						continue
+					end
+
+					table.remove(pairEndPointRoadConfig.pairExtensionEndRoadPoints, otherPointInEndPoints)
+				end
+				-- insert the new road point into `pairExtensionEndRoadPoints`
+				table.insert(pairEndPointRoadConfig.pairExtensionEndRoadPoints, targetPointInstance)
+
+				-- finally.. cache the pair extension endpoints
+				RoadBuilderCache.QueueReplicationCache(
+					pairEndPointInstance,
+					pairEndPointRoadCache,
+					RoadBuilderCache.TARGET_CACHE_TYPE_ENUMS.TargetRoadPoint
+				)
+			end
+
+			--[[
+				CACHE TARGET/SELECTION ROADPOINT
+			]]
+
+			local targetPairExtensionEndRoadPoints: {BasePart} = {}
+			local targetDependentRoadPoints: {BasePart} = {}
+			local targetDependentRoads: {BasePart} = {}
+			local targetPointDirection: Vector2
+
+			for pointInstance, pointData in pairEndPointDataList do
+				local pointVector2Direction = pointData.pointCache.vector2Direction
+
+				table.insert(targetPairExtensionEndRoadPoints, pointInstance)
+				TableUtils.InsertValues(targetDependentRoadPoints, pointData.dependentRoadPoints)
+				TableUtils.InsertValues(targetDependentRoads, pointData.dependentRoads)
+
+				if not targetPointDirection then
+					targetPointDirection = pointVector2Direction
+				else
+					local dotSign = math.sign(targetPointDirection:Dot(pointVector2Direction))
+					targetPointDirection = targetPointDirection:Lerp(pointVector2Direction * dotSign, .5)
+				end
+			end
+
+			-- cache the targetPointInstance
+			RoadBuilderCache.SetRoadPointCache(
+				targetPointInstance,
+				RoadPointCache( --TODO: update the direction vectorDirection
+					RoadPointCacheTypeEnums.EndPoint,
+					EndPointConfig(
+						targetPairExtensionEndRoadPoints,
+						targetDependentRoadPoints,
+						targetDependentRoads,
+						targetPointCache.roadPointConfig.connectedRoads -- still the same
+					),
+					targetPointDirection
+				)
+			)
+
+		-- converting cache type `EndPoint` to `DependentPoint`
+		else
+			local targetPointConfig: EndPointConfig.EndPointConfig = targetPointCache.roadPointConfig
+			
+			-- cache the targetPointInstance
+			RoadBuilderCache.SetRoadPointCache(
+				targetPointInstance,
+				RoadPointCache(
+					RoadPointCacheTypeEnums.DependentPoint,
+					DependentPointConfig(
+						targetPointConfig.pairExtensionEndRoadPoints,
+						targetPointConfig.connectedRoads
+					)
+				)
+			)
+		end
+	end
 end
 
 --// PUBLIC
+
+local OVERRIDE_CONFIG_TO_FUNCTION = {
+	[OverrideRoadEnums.ClearPreviousRoadOverride] = clearPreviousRoadOverride;
+	[OverrideRoadEnums.SetPointCacheType] = setPointCacheTypeOverride;
+}
+
+--[[
+	Applies override road configs, dependent on whatever type is sent through `overrideRoadConfig`.
+		
+	* ClearPreviousRoad - clears the previous road, used for road remake requests
+	* SetPointCacheType - can override a road point's cache type between either DependentPoint and EndPoint
+]]
+function Creation.ApplyOverrideRoadConfig(
+	overrideRoadConfig: ClearPreviousRoad.ClearPreviousRoad | SetPointCacheType.SetPointCacheType
+)
+	if not overrideRoadConfig then
+		return
+	end
+
+	local overrideFunction = OVERRIDE_CONFIG_TO_FUNCTION[overrideRoadConfig.tag]
+	if overrideFunction then
+		overrideFunction(overrideRoadConfig)
+	end
+end
 
 --[[
 	Creates a road origin, needs only origin PointVector2Data. Direction is not forced if left as empty.
@@ -359,10 +666,7 @@ function Creation.CreateOriginRoadPoint(
 	originVector2Data: PointVector2Data.PointVector2Data,
 	shouldBeCachedAsEndPoint: boolean?
 ): RoadCreationOutputData.RoadCreationOutputData
-	
-	-- if applicable
-	overridePreviousRoad(roadConfig.overrideRoadConfig)
-
+	local overrideRoadConfig = roadConfig.overrideRoadConfig
 	local roadType = roadConfig.roadType
 	local createType = roadConfig.createType
 	local isCreateTypeDefault = assertCreateDefaultTypeToServer(createType)
@@ -403,9 +707,7 @@ function Creation.CreateExtensionRoad(
 	originVector2Data: PointVector2Data.PointVector2Data, 
 	goalVector2Data: PointVector2Data.PointVector2Data
 ): RoadCreationOutputData.RoadCreationOutputData
-	-- if applicable
-	overridePreviousRoad(roadConfig.overrideRoadConfig) 
-
+	local overrideRoadConfig = roadConfig.overrideRoadConfig
 	local originVector2DataWithDir = RoadCreationConfig.ApplyDefaultDirectionToVector2Data(originVector2Data)
 
 	local roadType = roadConfig.roadType
@@ -430,11 +732,13 @@ function Creation.CreateExtensionRoad(
 	local ROAD_ASSET = ASSETS.road[roadType]
 	local ROAD_POINT_ASSET = ASSETS.roadPoint[roadType]
 
+	-- both of these are for different purposes, and are updated everytime a new road is created
+	local createdRoadPairs = {}:: {{fromPoint: BasePart, toPoint: BasePart, road: BasePart}} -- for caching purposes
 	local dependentRoads = {
 		roadPoints = {};
 		roads = {};
-		n = 0;
 	}
+
 	local previousRoadPointPosition: Vector2 = originPosition
 	local previousRoadPointYLevel: number = originYLevel
 	local previousRoadPointT = 0
@@ -485,7 +789,18 @@ function Creation.CreateExtensionRoad(
 		)
 		table.insert(dependentRoads.roadPoints, newRoadPoint)
 		table.insert(dependentRoads.roads, newRoad)
-		dependentRoads.n += 2
+
+		ifCreateTypeDefault(roadConfig, function()
+			local newestRoadPair = createdRoadPairs[#createdRoadPairs]
+
+			table.insert(createdRoadPairs, {
+				fromPoint = newestRoadPair 
+					and newestRoadPair.toPoint
+					or originRoadPoint;
+				toPoint = newRoadPoint;
+				road = newRoad;
+			})
+		end)
 
 		previousRoadPointPosition = curvePosition
 		previousRoadPointT = verticalT
@@ -503,20 +818,39 @@ function Creation.CreateExtensionRoad(
 		PointVector2Data(previousRoadPointPosition, nil, previousRoadPointYLevel),
 		PointVector2Data(goalPosition, nil, goalYLevel),
 		ExtensionConfigData(
-			true, 
-			originRoadPoint,
-			dependentRoads.roadPoints,
-			dependentRoads.roads
+			true
 		)
 	)
-	
-	table.insert(dependentRoads.roadPoints, goalRoadPoint)
+	-- we dont include `goalRoadPoint` because thatll be the `goalRoadPoint` for extension data
 	table.insert(dependentRoads.roads, goalRoad)
-	dependentRoads.n += 2
 
 	ifCreateTypeDefault(roadConfig, function()
+		--[[
+			should be ran before any of the new extension road data is cached
+			movitation is that its easier to modify/override "previous road data" so to speak
+		]]
+		-- Creation.ApplyOverrideRoadConfig(overrideRoadConfig)
+
+		do 
+			local newestRoadPair = createdRoadPairs[#createdRoadPairs]
+		
+			-- insert final goal road pairs
+			table.insert(createdRoadPairs, {
+				fromPoint = newestRoadPair 
+					and newestRoadPair.toPoint
+					or originRoadPoint;
+				toPoint = goalRoadPoint;
+				road = goalRoad
+			})
+		end
+
+		-- cache road pairs
+		for _, roadPair in createdRoadPairs do
+			cacheRoadAndRoadPointData(roadPair.fromPoint, roadPair.toPoint, roadPair.road)
+		end
+
 		-- update server cache extension road data
-		cacheRoadExtensionData(
+		cacheEndPointData(
 			originRoadPoint,
 			goalRoadPoint,
 	
@@ -524,7 +858,9 @@ function Creation.CreateExtensionRoad(
 			dependentRoads.roads
 		)
 
-		-- batch send replication (to client)
+		-- Creation.ApplyOverrideRoadConfig(overrideRoadConfig)
+
+		-- send all batched replication data (to client)
 		RoadBuilderCache.SendBatchedReplicationCache()
 	end)
 	

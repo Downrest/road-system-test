@@ -34,14 +34,14 @@ function internal.ClearVisualizedCache(
 	self: VisualizerClassPrivate,
 	whitelistedInstances: {Instance} | Instance
 )
+	whitelistedInstances = TableUtils.EnsureTable(whitelistedInstances)
+
 	local visualizerCache = self.visualizerCache
 
-	local whitelistedTable = TableUtils.EnsureTable(whitelistedInstances)
-
-	-- if statement to avoid unnecessary `table.find()` calls when `whitelistedTable` does not exist
-	if whitelistedTable then
+	-- if statement to avoid unnecessary `table.find()` calls when `whitelistedInstances` does not exist
+	if whitelistedInstances then
 		for visualizationInstance, visualizationData in visualizerCache do
-			if table.find(whitelistedTable, visualizationInstance) then
+			if table.find(whitelistedInstances, visualizationInstance) then
 				continue
 			end
 

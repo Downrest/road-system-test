@@ -5,9 +5,11 @@ local StarterPlayer = game:GetService("StarterPlayer")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
+local EndPointConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.PointConfigWrappers.EndPointConfig)
 local RoadPointCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CacheDataWrappers.RoadPointCache)
-local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
-local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.OverrideRoadConfig)
+local CreateRoadRequestConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadRequestConfig)
+local ClearPreviousRoad = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.OverrideRoadWrappers.ClearPreviousRoad)
+local SetPointCacheType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.OverrideRoadWrappers.SetPointCacheType)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadPointCacheTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadPointCacheTypeEnums)
@@ -154,21 +156,25 @@ local function cacheRemakeRoads(capturedStates: RoadBuilderState.CapturedStates)
 
 	-- check if current goalpoint has any cache, otherwise return
 	local goalPointCache: RoadPointCache.RoadPointCache = RoadBuilderCache.GetRoadDataFromVector3(goalPointPosition)
-	if not goalPointCache then
+	if 
+		not goalPointCache 
+		or goalPointCache.roadPointCacheType == RoadPointCacheTypeEnums.DependentPoint 
+	then
 		return
 	end
 
+	local goalPointRoadConfig: EndPointConfig.EndPointConfig = goalPointCache.roadPointConfig
 	--[[
-		insert dependent roads / roadpoints of cac`goalPointCache into `currentRemakeRoadCache.dependentRoads`
+		insert dependent roads / roadpoints of cac`goalPointRoadConfig into `currentRemakeRoadCache.dependentRoads`
 	]]
-	for _, roadInstance in goalPointCache.dependentRoadInstances.roadPoints do
+	for _, roadInstance in goalPointRoadConfig.dependentRoadInstances.roadPoints do
 		table.insert(currentRemakeRoadCache.dependentRoads, {
 			roadInstance = roadInstance;
 			roadVariant = RoadVariantEnums.RoadPoint;
 			roadColor = roadInstance.Color;
 		})
 	end
-	for _, roadInstance in goalPointCache.dependentRoadInstances.roads do
+	for _, roadInstance in goalPointRoadConfig.dependentRoadInstances.roads do
 		table.insert(currentRemakeRoadCache.dependentRoads, {
 			roadInstance = roadInstance;
 			roadVariant = RoadVariantEnums.Road;
@@ -180,7 +186,7 @@ local function cacheRemakeRoads(capturedStates: RoadBuilderState.CapturedStates)
 	currentRemakeRoadCache.selectionRoadPoint = capturedStates.currentGoalPoint.referenceInstance
 
 	-- loop through road points, and ensure that direction data is reflected for visualization accuracy
-	for _, endRoadPoint in goalPointCache.pairExtensionEndRoadPoints do
+	for _, endRoadPoint in goalPointRoadConfig.pairExtensionEndRoadPoints do
 		local endRoadPointCache: RoadPointCache.RoadPointCache = RoadBuilderCache.GetRoadDataFromVector3(endRoadPoint.Position)
 		if not endRoadPointCache then
 			continue
@@ -200,11 +206,15 @@ local function cacheRemakeRoads(capturedStates: RoadBuilderState.CapturedStates)
 end
 
 local function toggleRemakeRoadsCache(isVisible: boolean)
-	-- -- only nil if the remaked road is an existent road, not from a mere simulation
-	-- if not currentRemakeRoadCache.selectionRoadPoint then
-	-- 	return
-	-- end
-
+	if currentRemakeRoadCache.selectionRoadPoint then
+		RoadBuilderVisualization.ApplyVisualizeCreateTypeProperties(
+			currentRemakeRoadCache.selectionRoadPoint,
+			RoadVariantEnums.RoadPoint,
+			isVisible
+			and RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.default(true)
+			or RoadVisualizationConfig.VISUALIZER_ROAD_CREATE_TYPES.remake
+		)
+	end
 	for _, remakeRoadData in currentRemakeRoadCache.dependentRoads do
 		local isRoadPoint = (remakeRoadData.roadVariant == RoadVariantEnums.RoadPoint)
 
@@ -242,7 +252,7 @@ local function visualizeRemakeRoad(capturedStates: RoadBuilderState.CapturedStat
 	local hasInvalid = false
 
 	for endRoadPoint, endData in currentRemakeRoadCache.endRoadPoints do
-		local createRoadConfig = CreateRoadConfig(
+		local createRoadConfig = CreateRoadRequestConfig(
 			capturedStates.currentRoadType,
 			CreateVariantEnums.RoadExtension,
 			nil, 
@@ -288,7 +298,7 @@ local function visualizeRemakeRoad(capturedStates: RoadBuilderState.CapturedStat
 end
 
 local function visualizeStandardRoad(capturedStates: RoadBuilderState.CapturedStates): (boolean, RoadExtensionVisualData.RoadExtensionVisualData)
-	local createRoadConfig = CreateRoadConfig(
+	local createRoadConfig = CreateRoadRequestConfig(
 		capturedStates.currentRoadType,
 		CreateVariantEnums.RoadExtension,
 		nil, 
@@ -314,7 +324,7 @@ local function visualizeStandardRoad(capturedStates: RoadBuilderState.CapturedSt
 	return isValid, roadCache
 end
 
-local function requestRoadCreation(createRoadConfig: CreateRoadConfig.CreateRoadConfig)
+local function requestRoadCreation(createRoadConfig: CreateRoadRequestConfig.CreateRoadRequestConfig)
 	RoadBuilderEvents.CreateRoadRequest:FireServer(createRoadConfig)
 end
 
@@ -357,6 +367,7 @@ local function exitFinalizedSelection()
 		nil
 	)
 	states.isPromptedSelection(false)
+	states.isValidRoadSelection(true)
 	onPressDebounce = false
 end
 
@@ -382,8 +393,6 @@ InputManager.OnPress:Connect(function()
 	local remakeState = currentRemakeRoadCache.remakeState
 	local previousVerticalRay = MouseUtils.GetMouseRay()
 
-	-- RoadBuilderEvents.RequestRoadData:InvokeServer(capturedStates.currentGoalPoint.goalPoint.Position)
-
 	onPressDebounce = true
 
 	-- enable selection state, pauses resimulation of clientside roads (sent to the server)
@@ -391,6 +400,7 @@ InputManager.OnPress:Connect(function()
 
 	resetRenderThrottle()
 	RoadBuilderState.ResetStates("IsMovingSelection")
+	RoadBuilderCache.DestroyAllListeners() -- destroy previous data listeners
 
 	-- prepare remakecache incase of "remake movement"
 	resetRemakeRoadCache()
@@ -401,10 +411,8 @@ InputManager.OnPress:Connect(function()
 		just to fix up anything that may have been missed from the renderstep
 	]]
 	if capturedStates.currentSelectionPoint.selectionPoint then
-		RoadBuilderVisualization.ClearVisualizedRoads(
-			{capturedStates.currentGoalPoint.goalPoint}
-		)
-		RoadBuilderState.IsValidRoadPoint(visualizeStandardRoad(capturedStates))
+		RoadBuilderVisualization.ClearVisualizedRoads(capturedStates.currentGoalPoint.goalPoint)
+		RoadBuilderState.IsValidRoadSelection(visualizeStandardRoad(capturedStates))
 	end
 
 	-- selection prompt gui
@@ -461,9 +469,8 @@ InputManager.OnPress:Connect(function()
 		RoadBuilderState.SetMovingSelection(false)
 	end))
 
-	--TODO: take away the "reset" term, make it into freemove for consistency
 	-- freemove remake
-	onPressJanitor:Add(SELECTION_GUI_SIGNALS.resetStarted:Connect(function()
+	onPressJanitor:Add(SELECTION_GUI_SIGNALS.freemoveStarted:Connect(function()
 		if remakeState.isRemaking then
 			return
 		end
@@ -476,7 +483,7 @@ InputManager.OnPress:Connect(function()
 		toggleRemakeRoadsCache(false)
 		RoadBuilderState.SetMovingSelection(true)
 	end))
-	onPressJanitor:Add(SELECTION_GUI_SIGNALS.resetEnded:Connect(function()
+	onPressJanitor:Add(SELECTION_GUI_SIGNALS.freemoveEnded:Connect(function()
 		if remakeState.remakeType ~= RemakeTypeEnums.Freemove then
 			return
 		end
@@ -513,10 +520,17 @@ InputManager.OnPress:Connect(function()
 				~= capturedStates.currentGoalPoint.goalPoint.Position 
 			then
 				requestRoadCreation(
-					CreateRoadConfig(
+					CreateRoadRequestConfig(
 						capturedStates.currentRoadType,
 						CreateVariantEnums.RoadExtension,
-						nil,
+						SetPointCacheType(
+							RoadPointCacheTypeEnums.EndPoint,
+							{
+								-- can be nil
+								capturedStates.currentSelectionPoint.selectionPoint and capturedStates.currentSelectionPoint.selectionPoint.Position,
+								capturedStates.currentGoalPoint.goalPoint.Position
+							}
+						),
 						
 						PointVector2Data(
 							capturedStates.currentSelectionPoint.selectionPoint.Position, 
@@ -540,11 +554,10 @@ InputManager.OnPress:Connect(function()
 				]]
 				for endRoadPoint, endData in currentRemakeRoadCache.endRoadPoints do
 					requestRoadCreation(
-						CreateRoadConfig(
+						CreateRoadRequestConfig(
 							capturedStates.currentRoadType,
 							CreateVariantEnums.RoadExtension,
-							OverrideRoadConfig(
-								true,
+							ClearPreviousRoad(
 								currentRemakeRoadCache.selectionRoadPoint.Position
 							),
 
@@ -562,7 +575,7 @@ InputManager.OnPress:Connect(function()
 				-- if no roadpoint currently in position, create new roadpoint
 				if not goalRoadPointCache then
 					requestRoadCreation(
-						CreateRoadConfig(
+						CreateRoadRequestConfig(
 							capturedStates.currentRoadType,
 							CreateVariantEnums.RoadPoint,
 							nil,
@@ -576,17 +589,28 @@ InputManager.OnPress:Connect(function()
 
 		-- updated selectedroadpoint
 		local newSelectionPoint = capturedStates.currentGoalPoint.goalPoint
-		RoadBuilderState.SetCurrentSelectionPoint(newSelectionPoint)
+		RoadBuilderState.SetCurrentSelectionPoint(newSelectionPoint) -- updated current selection
 		
-		-- update selection direction for next data
-		RoadBuilderCache.ListenOnceForVector3(newSelectionPoint.Position, function(selectionPointData)
-			RoadBuilderState.SetCurrentSelectionDirection(selectionPointData.vector2Direction)
+		RoadBuilderCache.ListenOnceForVector3(newSelectionPoint.Position, function(
+			selectionPointInstance,
+			selectionPointData,
+			listenDestructor
+		)
+			-- can be nil if say, a cache update clears the specific `selectionPointInstance` (possibly from an data override)
+			if not selectionPointData then
+				return 
+			end
+
+			RoadBuilderState.SetCurrentSelectionDirection(selectionPointData.vector2Direction) -- update selection direction
+			if listenDestructor then
+				listenDestructor()
+			end
 		end)
 
 		-- do not create a new goalpoint if `isRepeatedSelection` is true
 		if not isRepeatedSelection then
 			local newVisualizedRoadPoint = newRoadPointOnMouse(capturedStates.currentGoalPoint.goalPoint.Position)
-			RoadBuilderState.SetCurrentGoalPoint(newVisualizedRoadPoint)
+			RoadBuilderState.SetCurrentGoalPoint(newVisualizedRoadPoint) -- update current goal
 		end
 
 		exitFinalizedSelection()
@@ -626,6 +650,9 @@ RoadBuilderState.ScopeState(function()
 			onPressJanitor:Cleanup()
 			RoadBuilderVisualization.ClearVisualizedRoads()
 			RoadBuilderState.ResetStates()
+			
+			RoadPointHighlight.ResetHighlightAdornees()
+			RoadPointHighlight.ResetHighlightTracking()
 
 			attachSelectionGui(nil)
 			exitFinalizedSelection()
@@ -637,7 +664,7 @@ RoadBuilderState.ScopeState(function()
 		local capturedStates = RoadBuilderState.CaptureStates()
 		-- states.isPromptedSelection() -- track
 
-		if states.isValidRoadPoint() then
+		if states.isValidRoadSelection() then
 			RoadBuilderErrorAlert.ClearErrorAlerts()
 			RoadBuilderSelectionPrompt.ToggleValidRoadSelection(SELECTION_GUI, true)
 		else
@@ -669,7 +696,6 @@ local function handleRenderThrottling(capturedStates: RoadBuilderState.CapturedS
 		)
 end
 
--- this could be a state machine tbh
 RunService.Heartbeat:Connect(function()
 	-- render throttling the visualization code itself (depending on how far the road is from the player)
 	if renderThrottle > 0 then
@@ -682,7 +708,7 @@ RunService.Heartbeat:Connect(function()
 	if 
 		not capturedStates.isInBuildMenu -- is not in build menu?
 		or (capturedStates.isPromptedSelection and not capturedStates.isMovingSelection.isMoving) -- is in selection gui?
-		or not capturedStates.currentGoalPoint.goalPoint -- weird, should always have a goalpoint at initiation
+		or not capturedStates.currentGoalPoint.goalPoint -- should always have a goalpoint at initialization
 
 	-- then, stop rerendering of visualized road
 	then
@@ -709,7 +735,8 @@ RunService.Heartbeat:Connect(function()
 			mouseCastPosition = nil:: Vector3?;
 			mouseCastInstance = nil:: BasePart?;
 
-			isCastInstanceValidSelection = nil:: boolean?;
+			isCastInstanceValidSelection = false:: boolean?;
+			isCastEndPoint = true:: boolean?;
 		}
 
 		-- override `goalPointToPosition` position (eg vertical movement)
@@ -723,17 +750,17 @@ RunService.Heartbeat:Connect(function()
 				castData.mouseCastPosition = castData.currentMouseCast.Position
 				castData.mouseCastInstance = castData.currentMouseCast.Instance
 
+				local isValidEndPoint
 				--[[
 					checks if instance has been actually cached, 
 					our way of doublechecking if a roadpoint is merely a visualization or not
 				]]
-				local isCastEndPoint: boolean?
-				castData.isCastInstanceValidSelection, isCastEndPoint = RoadBuilderSelectionValidator.IsValidRoadPoint(
+				castData.isCastInstanceValidSelection, isValidEndPoint = RoadBuilderSelectionValidator.IsValidRoadPoint(
 					castData.mouseCastInstance,
 					true
 				)
-				if isCastEndPoint ~= nil then
-					states.isSelectingEndPoint(isCastEndPoint)
+				if castData.isCastInstanceValidSelection then
+					castData.isCastEndPoint = isValidEndPoint
 				end
 
 				castData.isCastInstanceValidSelection = 
@@ -745,21 +772,26 @@ RunService.Heartbeat:Connect(function()
 					or castData.mouseCastPosition
 
 				goalPointToPosition = castGoalPosition
-
-				if 
-					capturedStates.isHoveringExistingRoadPoint
-					and capturedStates.isMovingSelection.isMoving
-					and not capturedStates.currentSelectionPoint.selectionPoint 
-				then
-					isRemake = true
-				else
-					states.isHoveringExistingRoadPoint(castData.isCastInstanceValidSelection)
-
-					-- either existing instance or nil
-					RoadBuilderState.SetCurrentGoalReference(castData.isCastInstanceValidSelection and castData.mouseCastInstance)
-				end
 			end
 		end
+		
+		if 
+			capturedStates.isHoveringExistingRoadPoint
+			and capturedStates.isMovingSelection.isMoving
+			and not capturedStates.currentSelectionPoint.selectionPoint 
+		then
+			isRemake = true
+			castData.isCastEndPoint = true
+		else
+			states.isHoveringExistingRoadPoint(castData.isCastInstanceValidSelection)
+
+			if castData.isCastInstanceValidSelection then
+				-- either existing instance or nil
+				RoadBuilderState.SetCurrentGoalReference(castData.mouseCastInstance)
+			end
+		end
+
+		states.isSelectingEndPoint(castData.isCastEndPoint)
 
 		--[[
 			POSITIONING GOALPOINT + REDRAWING ROADS PHASE
@@ -771,9 +803,7 @@ RunService.Heartbeat:Connect(function()
 		end
 
 		-- clear current (cached) visualization data, runs destructor functions
-		RoadBuilderVisualization.ClearVisualizedRoads(
-			{capturedStates.currentGoalPoint.goalPoint}
-		)
+		RoadBuilderVisualization.ClearVisualizedRoads(capturedStates.currentGoalPoint.goalPoint)
 		RoadPointHighlight.ResetHighlightTracking()
 
 		-- can be nil if player points it to the sky
@@ -784,38 +814,54 @@ RunService.Heartbeat:Connect(function()
 
 		-- remake road simulation
 		if isRemake then
-			RoadBuilderState.IsValidRoadPoint(visualizeRemakeRoad(capturedStates))
+			RoadBuilderState.IsValidRoadSelection(visualizeRemakeRoad(capturedStates))
 			
 		-- standard road simulation
 		else
-			local updatedSelectionPoint = states.currentSelectionPoint().selectionPoint
 			local updatedGoalPoint = states.currentGoalPoint().goalPoint
 			local updatedIsSelectingEndPoint = states.isSelectingEndPoint()
 
-			if updatedSelectionPoint then
-				RoadPointHighlight.HighlightRoadPoints(
-					updatedSelectionPoint,
-					PointHighlightEnums.EndPointHighlight
-				)
-			end
+			-- highlight goal point
 			if updatedGoalPoint then
 				RoadPointHighlight.HighlightRoadPoints(
 					states.currentGoalPoint().goalPoint,
-					(updatedIsSelectingEndPoint == true or updatedIsSelectingEndPoint == nil)
+					if 
+						states.isHoveringExistingRoadPoint()
+					then
+						updatedIsSelectingEndPoint
 						and PointHighlightEnums.EndPointHighlight
 						or PointHighlightEnums.DependentPointHighlight
+					else
+						PointHighlightEnums.NothingHighlight
 				)
 			end
 
 			if capturedStates.currentSelectionPoint.selectionPoint then
 				local isVisualizedRoadValid, visualizedRoadData = visualizeStandardRoad(capturedStates)
 
-				RoadBuilderState.IsValidRoadPoint(isVisualizedRoadValid)
+				RoadBuilderState.IsValidRoadSelection(isVisualizedRoadValid)
 				RoadPointHighlight.HighlightRoadPoints(
 					visualizedRoadData.dependentRoadInstances.roadPoints, 
 					PointHighlightEnums.DependentPointHighlight
 				)
+				RoadPointHighlight.HighlightRoadPoints(
+					visualizedRoadData.endRoadPointInstance, 
+					PointHighlightEnums.EndPointHighlight
+				)
 			end
+		end
+		
+		-- highlight nearby roadpoints, do spatial partitioning to find said nearby roadpoints
+		local roadPointsNearGoalPoint = RoadBuilderCache.RoadInstanceHash.roadPoints:GetHash(capturedStates.currentGoalPoint.goalPoint.Position)
+		if roadPointsNearGoalPoint then
+			for roadPointInstance: BasePart, roadPointData: RoadPointCache.RoadPointCache in roadPointsNearGoalPoint do
+				RoadPointHighlight.HighlightRoadPoints(
+					roadPointInstance, 
+					roadPointData.roadPointCacheType == RoadPointCacheTypeEnums.EndPoint
+						and PointHighlightEnums.EndPointHighlight
+						or PointHighlightEnums.DependentPointHighlight
+				)
+			end	
 		end
 
 		handleRenderThrottling(capturedStates)

@@ -19,7 +19,7 @@ State.DEFAULT_VALUES = {
     --[[
         both of these must be true because Vide.state() runs once initially to track dependcies
     ]]
-    IsValidRoadPoint = true;
+    IsValidRoadSelection = true;
     IsSelectingEndPoint = true;
 
     CurrentRoadType = nil;
@@ -40,7 +40,7 @@ export type IsPromptedSelection = boolean
 export type IsMovingSelection = {isMoving: boolean, overrideMovementPosition: BasePart?}
 export type IsHoveringExistingRoadPoint = boolean
 export type IsVisualizing = boolean
-export type IsValidRoadPoint = boolean
+export type IsValidRoadSelection = boolean
 export type IsSelectingEndPoint = boolean
 
 export type CurrentRoadType = string?
@@ -55,7 +55,7 @@ export type StateNames =
     | "IsMovingSelection" 
     | "IsHoveringExistingRoadPoint"
     | "IsVisualizing"
-    | "IsValidRoadPoint"
+    | "IsValidRoadSelection"
 
     | "CurrentRoadType"
     | "CurrentGoalPoint"
@@ -66,7 +66,7 @@ State.IsPromptedSelection = Vide.source(State.DEFAULT_VALUES.IsPromptedSelection
 State.IsMovingSelection = Vide.source(State.DEFAULT_VALUES.IsMovingSelection):: Vide.source<IsMovingSelection>
 State.IsHoveringExistingRoadPoint = Vide.source(State.DEFAULT_VALUES.IsHoveringExistingRoadPoint):: Vide.source<IsHoveringExistingRoadPoint>
 State.IsVisualizing = Vide.source(State.DEFAULT_VALUES.IsVisualizing):: Vide.source<IsVisualizing>
-State.IsValidRoadPoint = Vide.source(State.DEFAULT_VALUES.IsValidRoadPoint):: Vide.source<IsValidRoadPoint>
+State.IsValidRoadSelection = Vide.source(State.DEFAULT_VALUES.IsValidRoadSelection):: Vide.source<IsValidRoadSelection>
 State.IsSelectingEndPoint = Vide.source(State.DEFAULT_VALUES.IsSelectingEndPoint):: Vide.source<IsSelectingEndPoint>
 
 State.CurrentRoadType = Vide.source(State.DEFAULT_VALUES.CurrentRoadType):: Vide.source<CurrentRoadType>
@@ -151,7 +151,7 @@ function State.ResetStates(...: StateNames)
         State.IsMovingSelection(State.DEFAULT_VALUES.IsMovingSelection)
         State.IsHoveringExistingRoadPoint(State.DEFAULT_VALUES.IsHoveringExistingRoadPoint)
         State.IsVisualizing(State.DEFAULT_VALUES.IsVisualizing)
-        State.IsValidRoadPoint(State.DEFAULT_VALUES.IsValidRoadPoint)
+        State.IsValidRoadSelection(State.DEFAULT_VALUES.IsValidRoadSelection)
         State.IsSelectingEndPoint(State.DEFAULT_VALUES.IsSelectingEndPoint)
     
         State.CurrentRoadType(State.DEFAULT_VALUES.CurrentRoadType)
@@ -172,7 +172,7 @@ function State.GetStates()
         isMovingSelection = State.IsMovingSelection;
         isHoveringExistingRoadPoint = State.IsHoveringExistingRoadPoint;
         isVisualizing = State.IsVisualizing;
-        isValidRoadPoint = State.IsValidRoadPoint;
+        isValidRoadSelection = State.IsValidRoadSelection;
         isSelectingEndPoint = State.IsSelectingEndPoint;
 
 		currentRoadType = State.CurrentRoadType;
@@ -189,7 +189,7 @@ export type CapturedStates = {
     isMovingSelection: IsMovingSelection;
     isHoveringExistingRoadPoint: IsHoveringExistingRoadPoint;
     isVisualizing: IsVisualizing;
-    isValidRoadPoint: IsValidRoadPoint;
+    isValidRoadSelection: IsValidRoadSelection;
     isSelectingEndPoint: IsSelectingEndPoint;
 
     currentRoadType: CurrentRoadType;
@@ -209,7 +209,7 @@ function State.CaptureStates(): CapturedStates
         isMovingSelection = Vide.untrack(State.IsMovingSelection);
         isHoveringExistingRoadPoint = Vide.untrack(State.IsHoveringExistingRoadPoint);
         isVisualizing = Vide.untrack(State.IsVisualizing);
-        isValidRoadPoint = Vide.untrack(State.IsValidRoadPoint);
+        isValidRoadSelection = Vide.untrack(State.IsValidRoadSelection);
         isSelectingEndPoint = Vide.untrack(State.IsSelectingEndPoint);
 
         currentRoadType = Vide.untrack(State.CurrentRoadType);

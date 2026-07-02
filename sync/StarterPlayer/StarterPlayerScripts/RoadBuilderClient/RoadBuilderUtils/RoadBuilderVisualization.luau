@@ -35,12 +35,12 @@ end
 
 function Visualization.ApplyVisualizeCreateTypeProperties(
     roadInstance: BasePart,
-    createVariant: RoadVariantEnums.RoadVariantEnums,
+    roadVariant: RoadVariantEnums.RoadVariantEnums,
     visualizeCreateType: VisualizeCreateType.VisualizeCreateType
 )
     PropertiesUtils.ApplyProperties(
         roadInstance,
-        createVariant == RoadVariantEnums.RoadPoint
+        roadVariant == RoadVariantEnums.RoadPoint
             and visualizeCreateType.visualizedProperties.roadPoint
             or visualizeCreateType.visualizedProperties.road
     )
@@ -135,6 +135,7 @@ function Visualization.VisualizeRoadExtension(
     local endRoadPointInstance = extensionRoadOutput.endRoadPointInstance
     local endRoadPointVector2Data = extensionRoadOutput.endRoadPointVector2Data
 
+    --TODO: REMOVE THE n FROM EXTENSIONROADOUTPUT
     local dependentRoadInstances = extensionRoadOutput.dependentRoadInstances
     table.insert(dependentRoadInstances.roadPoints, originRoadPointOutput.endRoadPointInstance) -- extra line to insert originRoadPoint
 

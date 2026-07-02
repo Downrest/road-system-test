@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadBuilderCreation = require(ReplicatedStorage.RoadBuilder.RoadBuilderCreation)
-local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
+local CreateRoadRequestConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadRequestConfig)
 local DefaultCreateType = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreatePropertyWrappers.DefaultCreateType)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
 local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
@@ -45,7 +45,7 @@ end)
 ]]
 RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
     player: Player, 
-    createRoadConfig: CreateRoadConfig.CreateRoadConfig
+    createRoadConfig: CreateRoadRequestConfig.CreateRoadRequestConfig
 )
     local roadType = createRoadConfig.roadType
     local createVariant = createRoadConfig.createVariant
@@ -56,7 +56,9 @@ RoadBuilderEvents.CreateRoadRequest.OnServerEvent:Connect(function(
     assertCreateVariant(createVariant, fromPositionVector2Data, toPositionVector2Data)
 
     -- clear previous road (if applicable)
-    -- overridePreviousRoad(overrideRoadConfig)
+    if overrideRoadConfig then
+        RoadBuilderCreation.ApplyOverrideRoadConfig(overrideRoadConfig)
+    end
 
     -- step 0: create origin road
     if createVariant == CreateVariantEnums.RoadPoint then

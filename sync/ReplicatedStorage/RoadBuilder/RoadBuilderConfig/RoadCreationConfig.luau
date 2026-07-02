@@ -16,7 +16,7 @@ local Config = {
 	ROAD_CURVE_EDGE_LIMIT = 2;
 	ROAD_CURVE_T_EASING = {
 		horizontal = MathEasing.EaseInSine;
-		vertical = MathEasing.EaseInOutSine;
+		vertical = MathEasing.EaseInSine;
 	};
 	--[[
 		control points for bezier curve ranging [0, 1], depicts the expected road curve

@@ -1,14 +1,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local OverrideRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.OverrideRoadConfig)
 local PointVector2Data = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.PointVector2Data)
+local RoadConfigData = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.RoadConfigData)
 local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadTypeEnums)
 
-export type CreateRoadConfig = {
+export type CreateRoadRequestConfig = {
     roadType: RoadTypeEnums.RoadTypeEnums;
     createVariant: CreateVariantEnums.CreateVariantEnums;
-    overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig;
+    overrideRoadConfig: RoadConfigData.OverrideRoadConfigs;
     
     fromPositionVector2Data: PointVector2Data.PointVector2Data;
     toPositionVector2Data: PointVector2Data.PointVector2Data?;
@@ -17,11 +17,11 @@ export type CreateRoadConfig = {
 return function(
     roadType: RoadTypeEnums.RoadTypeEnums,
     createVariant: CreateVariantEnums.CreateVariantEnums,
-    overrideRoadConfig: OverrideRoadConfig.OverrideRoadConfig,
+    overrideRoadConfig: RoadConfigData.OverrideRoadConfigs,
 
     fromPositionVector2Data: PointVector2Data.PointVector2Data,
     toPositionVector2Data: PointVector2Data.PointVector2Data?
-): CreateRoadConfig
+): CreateRoadRequestConfig
     
     return {
         roadType = roadType;

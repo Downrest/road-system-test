@@ -31,6 +31,12 @@ return {
         );
     };
     HIGHLIGHT_ROAD_POINT_COLORS = {
+        nothing = newHighlightColorProperties(
+            Color3.new(0, 1, 0),
+            .95,
+            Color3.new(0, 1, 0),
+            .25
+        );
         dependentPoint = newHighlightColorProperties(
             Color3.new(0.831373, 1, 0),
             .75,

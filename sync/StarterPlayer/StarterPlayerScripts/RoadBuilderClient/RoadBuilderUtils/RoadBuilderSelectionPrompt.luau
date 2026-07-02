@@ -13,8 +13,8 @@ type UndoTriggeredSignal = Signal.Signal
 type VerticalDragContinueSignal = Signal.Signal
 type VerticalDragStartedSignal = Signal.Signal
 type VerticalDragEndedSignal = Signal.Signal
-type ResetStartedSignal = Signal.Signal
-type ResetEndedSignal = Signal.Signal
+type FreemoveStartedSignal = Signal.Signal
+type FreemoveEndedSignal = Signal.Signal
 
 type SelectionPromptGui = {
     gui: BillboardGui;
@@ -43,8 +43,8 @@ type SelectionPromptSignals = {
     verticalDragStarted: VerticalDragStartedSignal;
     verticalDragEnded: VerticalDragEndedSignal;
 
-    resetStarted: ResetStartedSignal;
-    resetEnded: ResetEndedSignal;
+    freemoveStarted: FreemoveStartedSignal;
+    freemoveEnded: FreemoveEndedSignal;
 }
 
 type SelectionPromptData = {
@@ -109,8 +109,8 @@ local function selectionPromptSignals(
         verticalDragStarted = verticalDragStartedSignal;
         verticalDragEnded = verticalDragEndedSignal;
 
-        resetStarted = resetStartedSignal;
-        resetEnded = resetEndedSignal;
+        freemoveStarted = resetStartedSignal;
+        freemoveEnded = resetEndedSignal;
     }
 end
 
@@ -188,9 +188,9 @@ function SelectionPrompt.CreateSelectionPrompt(adornee: BasePart?): (
 	local hasResetted = false
 	resetButton.MouseButton1Down:Connect(function()
         if not hasResetted then
-            selectionSignals.resetStarted:Fire()
+            selectionSignals.freemoveStarted:Fire()
         else
-            selectionSignals.resetEnded:Fire()
+            selectionSignals.freemoveEnded:Fire()
         end
         hasResetted = not hasResetted
     end)

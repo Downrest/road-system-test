@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RoadBuilderCache = require(ReplicatedStorage.RoadBuilder.RoadBuilderCache)
 local RoadCreationConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderConfig.RoadCreationConfig)
-local CreateRoadConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadConfig)
+local CreateRoadRequestConfig = require(ReplicatedStorage.RoadBuilder.RoadBuilderDataWrappers.CreateRoadWrappers.CreateRoadRequestConfig)
 local CreateVariantEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.CreateVariantEnums)
 local RoadPointCacheTypeEnums = require(ReplicatedStorage.RoadBuilder.RoadBuilderEnums.RoadPointCacheTypeEnums)
 local RoadBuilderCurveUtils = require(ReplicatedStorage.RoadBuilder.RoadBuilderUtils.RoadBuilderCurveUtils)
@@ -17,7 +17,7 @@ local SelectionValidator = {}
 	Maximum angle defaults to `CURVE_ANGLE_MAXIMUM`, but you can override with `overrideMaximumAngle`.
 ]]
 local function validateCurveAngle(
-	roadConfig: CreateRoadConfig.CreateRoadConfig,
+	roadConfig: CreateRoadRequestConfig.CreateRoadRequestConfig,
 	remakeGoalPosition: Vector3?
 ): boolean
 	local remakeGoalPositionVector2 = remakeGoalPosition and VectorUtils.Vector2FromVector3(remakeGoalPosition)
@@ -65,7 +65,7 @@ function SelectionValidator.IsValidRoadPoint(
 end
 
 function SelectionValidator.ValidateRoadRequest(
-	createRoadConfig: CreateRoadConfig.CreateRoadConfig,
+	createRoadConfig: CreateRoadRequestConfig.CreateRoadRequestConfig,
 	remakeGoalPosition: Vector3? -- implies that its a remake
 ): boolean
     local wasVerified = true
